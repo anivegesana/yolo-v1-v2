@@ -17,6 +17,7 @@ class DarkRouteProcess(ks.layers.Layer):
                  norm_epsilon=0.001,
                  activation='leaky',
                  leaky_alpha=0.1,
+                 use_bn=True,
                  **kwargs):
         """
         process darknet outputs and connect back bone to head more generalizably
@@ -53,6 +54,7 @@ class DarkRouteProcess(ks.layers.Layer):
         self._filters = filters // mod
         self._kernel_initializer = kernel_initializer
         self._bias_initializer = bias_initializer
+        self._use_bn=use_bn
 
         # normal params
         self._norm_moment = norm_moment
@@ -78,12 +80,12 @@ class DarkRouteProcess(ks.layers.Layer):
             layer_config[1] = 'spp'
         return layer_config
 
-    def _block(self, filters):
+    def _block(self, filters, use_bn):
         x1 = DarkConv(filters=filters // 2,
                       kernel_size=(1, 1),
                       strides=(1, 1),
                       padding="same",
-                      use_bn=True,
+                      use_bn=use_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,
                       norm_moment=self._norm_moment,
@@ -94,7 +96,7 @@ class DarkRouteProcess(ks.layers.Layer):
                       kernel_size=(3, 3),
                       strides=(1, 1),
                       padding="same",
-                      use_bn=True,
+                      use_bn=use_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,
                       norm_moment=self._norm_moment,
@@ -123,7 +125,7 @@ class DarkRouteProcess(ks.layers.Layer):
         self.layers = []
         for layer in self.layer_list:
             if layer == 'block':
-                self.layers.extend(self._block(self._filters))
+                self.layers.extend(self._block(self._filters, self._use_bn))
             else:
                 self.layers.extend(self._spp(self._filters))
         super().build(input_shape)
