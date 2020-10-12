@@ -42,7 +42,7 @@ class Yolov1Head(tf.keras.Model):
         self._input_shape = input_shape
 
         inputs = ks.layers.Input(shape=self._input_shape[1:])
-        outputs = self._connect_layers(self, self._config, inputs)
+        outputs = self._connect_layers(self._config, inputs)
         super().__init__(inputs=inputs, 
                          outputs=outputs, 
                          name=self._model_name, 
@@ -56,21 +56,15 @@ class Yolov1Head(tf.keras.Model):
             head = importlib.import_module('yolov1_'+ model,
                                             package=configs.__package__).head
         except ModuleNotFoundError as e:
-        if e.name == configs.__package__ + '.yolov1_' + model:
-            raise ValueError(f"Invlid head '{model}'") from e
-        else:
-            raise 
+            if e.name == configs.__package__ + '.yolov1_' + model:
+                raise ValueError(f"Invlid head '{model}'") from e
+            else:
+                raise 
         return head_build_block_specs(head)
-
-    def head_build_block_specs(config):
-        specs = []
-        for layer in config:
-            specs.append(HeadBlockConfig(*layer))
-        return specs
     
     def _connect_layers(self, layers, inputs):
         x = inputs
-        for i, layer in enumerate(layers):
+        for layer in layers:
             if layer.name == "DarkConv":
                 x = nn_blocks.DarkConv(filters=layer.filters, 
                                         kernel_size=layer.kernel_size,
@@ -112,5 +106,10 @@ class HeadBlockConfig(object):
         return
 
     def __repr__(self):
-        return f"layer: {self.name}, stack: {self.stack}, repititions: {self.repetitions}, filters: {self.filters}, bottleneck: {self.bottleneck}, route: {self.route}, output: {self.output_name}\n"
+        return f"layer: {self.name}, filters: {self.filters}, kernel_size: {self.kernel_size}, strides: {self.strides}, padding: {self.padding}, activation: {self.activation}\n"
 
+def head_build_block_specs(config):
+        specs = []
+        for layer in config:
+            specs.append(HeadBlockConfig(*layer))
+        return specs
