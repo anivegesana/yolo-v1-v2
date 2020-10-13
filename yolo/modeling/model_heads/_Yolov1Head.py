@@ -95,7 +95,8 @@ class HeadBlockConfig(object):
             filters: integer for the filter for this layer, or the output depth
             kernel_size: integer or none, if none, it implies that the the building 
                          block handles this automatically. not a layer input
-            downsample: boolean, to down sample the input width and height
+            padding:
+            activation:
         '''
         self.name = layer
         self.filters = filters
