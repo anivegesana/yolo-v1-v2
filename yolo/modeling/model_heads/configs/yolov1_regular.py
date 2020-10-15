@@ -1,5 +1,5 @@
 # (name, filters, kernal_size, strides, padding, activation)
-backbone = [
+head = [
     ("DarkConv", 1024, 3, 1, "valid", "leaky"),
     ("DarkConv", 1024, 3, 2, "valid", "leaky"),
     ("DarkConv", 1024, 3, 1, "valid", "leaky"),

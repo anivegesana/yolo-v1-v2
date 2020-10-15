@@ -40,6 +40,7 @@ class Yolov1Head(tf.keras.Model):
             self._model_name = "custom_head"
 
         self._input_shape = input_shape
+        self._output_depth = (boxes * 5) + classes
 
         inputs = ks.layers.Input(shape=self._input_shape[1:])
         outputs = self._connect_layers(self._config, inputs)
@@ -72,17 +73,21 @@ class Yolov1Head(tf.keras.Model):
                                         padding=layer.padding, 
                                         activation=layer.activation)(x)
             elif layer.name == "Local":
+                if layer.activation == "leaky":
+                    act = ks.layers.LeakyReLU(alpha=0.1)
+                else:
+                    act = layer.activation
                 x = ks.layers.LocallyConnected2D(filters=layer.filters, 
                                                  kernel_size=layer.kernel_size, 
                                                  strides=layer.strides,
                                                  padding=layer.padding,
-                                                 activation=layer.activation)(x)
+                                                 activation=act)(x)
             elif layer.name == "Dropout":
                 x = ks.layers.Dropout(rate=layer.filters)(x)
             elif layer.name == "Connected":
                 x = ks.layers.Dense(units=layer.filters, 
                                     activation=layer.activation)(x)
-        return x
+        return ks.layers.Reshape((self._S, self._S, self._output_depth))(x)
 
 class HeadBlockConfig(object):
     def __init__(self, layer, filters, kernel_size,
