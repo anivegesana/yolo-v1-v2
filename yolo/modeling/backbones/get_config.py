@@ -1,6 +1,6 @@
 class BlockConfig(object):
     def __init__(self, layer, reps, filters, kernel_size, strides, padding,
-                 downsample, output, name):
+                 downsample, output, name, use_bn=True):
         '''
         get layer config to make code more readable
 
@@ -21,6 +21,7 @@ class BlockConfig(object):
         self.downsample = downsample
         self.output = output
         self.output_name = name
+        self.use_bn = use_bn
         return
 
     def __repr__(self):

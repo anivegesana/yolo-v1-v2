@@ -21,6 +21,7 @@ class Backbone_Builder(ks.Model):
         self._layer_dict = {
             "DarkRes": nn_blocks.DarkResidual,
             "DarkUpsampleRoute": nn_blocks.DarkUpsampleRoute,
+            "DarkRouteProcess": nn_blocks.DarkRouteProcess,
             "DarkBlock": None
         }
 
@@ -73,7 +74,11 @@ class Backbone_Builder(ks.Model):
                                        kernel_size=config.kernel_size,
                                        strides=config.strides,
                                        padding=config.padding,
+<<<<<<< HEAD
                                        l2_regularization=self._weight_decay,
+=======
+                                       use_bn=config.use_bn,
+>>>>>>> a233b223d4e79e448a3a7c9ea5ef8568babb9a70
                                        name=f"{name}_{i}")(x)
             elif config.name == "darkyolotiny":
                 x = nn_blocks.DarkTiny(filters=config.filters,
@@ -84,6 +89,10 @@ class Backbone_Builder(ks.Model):
                                         strides=config.strides,
                                         padding=config.padding,
                                         name=f"{name}_{i}")(x)
+            elif config.name == "DarkRouteProcess":
+                x, _ = nn_blocks.DarkRouteProcess(filters=config.filters,
+                                               use_bn=config.use_bn,
+                                               name=f"{name}_{i}")(x)
             else:
                 layer = self._layer_dict[config.name]
                 x = layer(filters=config.filters,
