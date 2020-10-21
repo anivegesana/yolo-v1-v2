@@ -4,34 +4,36 @@ from typing import *
 
 import yolo.modeling.base_model as base_model
 from yolo.modeling.backbones.backbone_builder import Backbone_Builder
-from yolo.modeling.model_heads._Yolov3Head import Yolov3Head
+from yolo.modeling.model_heads._Yolov1Head import Yolov1Head
 from yolo.modeling.building_blocks import YoloLayer
 
 from yolo.utils.file_manager import download
 from yolo.utils import DarkNetConverter
 from yolo.utils._darknet2tf.load_weights import split_converter, load_weights_dnBackbone, load_weights_dnHead
 
-
 class Yolov1(base_model.Yolo):
     def __init__(
             self,
             input_shape=[None, None, None, 3],
-            model="yolov1",  # options {regular, spp, tiny}
-            classes=80,
+            model="regular",  # options {regular, spp, tiny}
+            classes=20,
             backbone=None,
             head=None,
             head_filter=None,
             masks=None,
-            boxes=None,
+            boxes=2,
             path_scales=None,
             x_y_scales=None,
             thresh: int = 0.45,
+            weight_decay = 5e-4, 
             class_thresh: int = 0.45,
+            use_nms = True,
+            using_rt = False,
             max_boxes: int = 200,
             scale_boxes: int = 416,
             scale_mult: float = 1.0,
             use_tie_breaker: bool = False,
-            clip_grads_norm = None,
+            clip_grads_norm = None, 
             policy="float32",
             **kwargs):
         super().__init__(**kwargs)
@@ -71,16 +73,32 @@ class Yolov1(base_model.Yolo):
         self.model_name = model
         self._model_name = None
         self._backbone_name = None
-        self.backbone = backbone
-        self.head = head
-        self.head_filter = head_filter
+        self._backbone_cfg = backbone
+        self._head_cfg = head
+        self._head_filter_cfg = head_filter
+        self._weight_decay = weight_decay
+        self._use_nms = use_nms
+        self._using_rt = using_rt
 
         self._clip_grads_norm = clip_grads_norm
 
-        self.get_models()
+        self.get_default_attributes()
+        self._loss_fn = None
+        self._loss_weight = None
         return
 
-    def get_models(self):
+    def get_default_attributes(self):
+        pass
+
+    def get_summary(self):
+        self._backbone.summary()
+        self._head.summary()
+        print(self._backbone.output_shape)
+        print(self._head.output_shape)
+        self.summary()
+        return
+
+    def build(self, input_shape):
         default_dict = {
             "regular": {
                 "backbone": "darknet53",
@@ -98,94 +116,53 @@ class Yolov1(base_model.Yolo):
                 "name": "yolov3-tiny"
             },
             "yolov1": {
-                "backbone": "yolov1_backbone"
+                "backbone": "yolov1_backbone",
+                "head": "regular",
+                "name": "yolov1"
             }
         }
-
-        if self.model_name == "regular" or self.model_name == "spp":
-            self._encoder_decoder_split_location = 76
-            self._boxes = self._boxes or [(10, 13), (16, 30), (33, 23),
-                                          (30, 61), (62, 45), (59, 119),
-                                          (116, 90), (156, 198), (373, 326)]
-            self._masks = self._masks or {
-                "1024": [6, 7, 8],
-                "512": [3, 4, 5],
-                "256": [0, 1, 2]
-            }
-            self._path_scales = self._path_scales or {
-                "1024": 32,
-                "512": 16,
-                "256": 8
-            }
-            self._x_y_scales = self._x_y_scales or {
-                "1024": 1.0,
-                "512": 1.0,
-                "256": 1.0
-            }
-        elif self.model_name == "tiny":
-            self._encoder_decoder_split_location = 14
-            self._boxes = self._boxes or [(10, 14), (23, 27), (37, 58),
-                                          (81, 82), (135, 169), (344, 319)]
-            self._masks = self._masks or {"1024": [3, 4, 5], "256": [0, 1, 2]}
-            self._path_scales = self._path_scales or {"1024": 32, "256": 8}
-            self._x_y_scales = self._x_y_scales or {"1024": 1.0, "256": 1.0}
-
-        if self.backbone == None or isinstance(self.backbone, Dict):
+        if self._backbone_cfg == None or isinstance(self._backbone_cfg, Dict):
             self._backbone_name = default_dict[self.model_name]["backbone"]
-            if isinstance(self.backbone, Dict):
-                default_dict[self.model_name]["backbone"] = self.backbone
-            self.backbone = Backbone_Builder(
+            if isinstance(self._backbone_cfg, Dict):
+                default_dict[self.model_name]["backbone"] = self._backbone_cfg
+            self._backbone = Backbone_Builder(
                 name=default_dict[self.model_name]["backbone"],
                 config=default_dict[self.model_name]["backbone"],
-                input_shape=self._input_shape)
-
+                input_shape=self._input_shape, 
+                weight_decay=self._weight_decay)
         else:
+            self._backbone = self._backbone_cfg
             self._custom_aspects = True
-
-        if self.head == None or isinstance(self.head, Dict):
-            if isinstance(self.head, Dict):
-                default_dict[self.model_name]["head"] = self.head
-            self.head = Yolov3Head(
+        
+        if self._head_cfg == None or isinstance(self._head_cfg, Dict):
+            if isinstance(self._head_cfg, Dict):
+                default_dict[self.model_name]["head"] = self._head_cfg
+            self._head = Yolov1Head(
                 model=default_dict[self.model_name]["head"],
-                cfg_dict=default_dict[self.model_name]["head"],
+                config=default_dict[self.model_name]["head"],
                 classes=self._classes,
-                boxes=len(self._boxes),
+                boxes=self._boxes,
                 input_shape=self._input_shape)
         else:
+            self._head = self._head_cfg
             self._custom_aspects = True
-
-        if self.head_filter == None:
-            self.head_filter = YoloLayer(masks=self._masks,
-                                         anchors=self._boxes,
-                                         thresh=self._thresh,
-                                         cls_thresh=self._class_thresh,
-                                         max_boxes=self._max_boxes,
-                                         scale_boxes=self._scale_boxes,
-                                         scale_mult=self._scale_mult,
-                                         path_scale=self._path_scales)
 
         self._model_name = default_dict[self.model_name]["name"]
+        self._backbone.build(input_shape)
+        self._head.build(self._backbone.output_shape)
+        self._built = True
+        super().build(input_shape)
         return
 
-    def get_summary(self):
-        self.backbone.summary()
-        self.head.summary()
-        print(self.backbone.output_shape)
-        print(self.head.output_shape)
-        return
-
-    def build(self, input_shape):
-        self.backbone.build(input_shape)
-        self.head.build(self.backbone.output_shape)
-        self.head_filter.build(self.head.output_shape)
-        return
-
-    def call(self, inputs, training=True):
-        feature_maps = self.backbone(inputs)
-        raw_head = self.head(feature_maps)
-        predictions = self.head_filter(raw_head)
-        return predictions
-
+    def call(self, inputs, training=False):
+        feature_maps = self._backbone(inputs)
+        raw_head = self._head(feature_maps)
+        if training or self._using_rt:
+            return {"raw_output": raw_head}
+        else:
+            predictions = self._head_filter(raw_head)
+            return predictions
+    
     def load_weights_from_dn(self,
                              dn2tf_backbone=True,
                              dn2tf_head=True,
@@ -219,6 +196,9 @@ class Yolov1(base_model.Yolo):
             config_file: str path for the location of the configuration file to use when decoding darknet weights
             weights_file: str path with the file containing the dark net weights
         """
+        if not self._built:
+            self.build(self._input_shape)
+
         if dn2tf_backbone or dn2tf_head:
             if config_file is None:
                 config_file = download(self._model_name + '.cfg')
@@ -229,14 +209,13 @@ class Yolov1(base_model.Yolo):
                 list_encdec, self._encoder_decoder_split_location)
 
         if dn2tf_backbone:
-            load_weights_dnBackbone(self.backbone,
+            load_weights_dnBackbone(self._backbone,
                                     encoder,
                                     mtype=self._backbone_name)
 
         if dn2tf_head:
-            load_weights_dnHead(self.head, decoder)
+            load_weights_dnHead(self._head, decoder)
         return
-
-
 if __name__ == "__main__":
-    model = Yolov1(model = "yolov1", policy="mixed_float16")
+    model = Yolov1(model = "yolov1")
+    model.build((1, 448, 448, 3))

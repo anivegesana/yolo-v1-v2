@@ -54,7 +54,7 @@ class Yolov1Head(tf.keras.Model):
     def load_cfg(self, model):
         """find the config file and load it for use"""
         try:
-            head = importlib.import_module('yolov1_'+ model,
+            head = importlib.import_module('.yolov1_'+ model,
                                             package=configs.__package__).head
         except ModuleNotFoundError as e:
             if e.name == configs.__package__ + '.yolov1_' + model:
@@ -119,3 +119,8 @@ def head_build_block_specs(config):
         for layer in config:
             specs.append(HeadBlockConfig(*layer))
         return specs
+
+if __name__ == "__main__":
+    head = Yolov1Head()
+    head.build((None, 448, 448, 3))
+    head.summary()

@@ -74,11 +74,8 @@ class Backbone_Builder(ks.Model):
                                        kernel_size=config.kernel_size,
                                        strides=config.strides,
                                        padding=config.padding,
-<<<<<<< HEAD
                                        l2_regularization=self._weight_decay,
-=======
                                        use_bn=config.use_bn,
->>>>>>> a233b223d4e79e448a3a7c9ea5ef8568babb9a70
                                        name=f"{name}_{i}")(x)
             elif config.name == "darkyolotiny":
                 x = nn_blocks.DarkTiny(filters=config.filters,
