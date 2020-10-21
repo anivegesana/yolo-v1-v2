@@ -237,6 +237,8 @@ class Yolov1(base_model.Yolo):
             load_weights_dnHead(self.head, decoder)
         return
 
+    def get_default_attributes():
+        pass
 
 if __name__ == "__main__":
     model = Yolov1(model = "yolov1", policy="mixed_float16")
