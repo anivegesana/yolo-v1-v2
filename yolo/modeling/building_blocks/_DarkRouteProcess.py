@@ -142,6 +142,7 @@ class DarkRouteProcess(ks.layers.Layer):
             x = layer(x)
             i += 1
         return x_prev, x
+        #return x, x_prev
 
     def get_config(self):
         # used to store/share parameters to reconsturct the model

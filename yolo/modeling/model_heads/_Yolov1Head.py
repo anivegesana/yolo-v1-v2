@@ -8,14 +8,16 @@ from typing import *
 import yolo.modeling.building_blocks as nn_blocks
 from . import configs
 
+from yolo.modeling.backbones.backbone_builder import Backbone_Builder
+
 class Yolov1Head(tf.keras.Model):
     def __init__(self, 
                  model="regular", 
                  classes=20,
                  S=7,
-                 boxes=2, 
+                 boxes=3, 
                  config=None, 
-                 input_shape=(None, None, None, 3), 
+                 input_shape=(None, None, None, 1024), 
                  **kwargs):
         """
         Args:
@@ -122,5 +124,5 @@ def head_build_block_specs(config):
 
 if __name__ == "__main__":
     head = Yolov1Head()
-    head.build((None, 448, 448, 3))
+    head.build(input_shape=(1, 7, 7, 1024))
     head.summary()

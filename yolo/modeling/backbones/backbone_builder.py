@@ -52,7 +52,6 @@ class Backbone_Builder(ks.Model):
                 raise ValueError(f"Invlid backbone '{name}'") from e
             else:
                 raise
-
         return build_block_specs(backbone)
 
     def _build_struct(self, net, inputs):
@@ -98,3 +97,8 @@ class Backbone_Builder(ks.Model):
                           name=f"{name}_{i}")(x)
             i += 1
         return x
+
+if __name__ == "__main__":
+    model = Backbone_Builder(name='yolov1_backbone')
+    model.build(input_shape=(None, 448, 448, 3))
+    model.summary()
