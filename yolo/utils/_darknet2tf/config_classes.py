@@ -432,6 +432,25 @@ class maxpoolCFG(Config):
                             padding='same')(tensors[-1])
 
 
+@layer_builder.register('dropout')
+@dataclass
+class dropoutCFG(Config):
+    _type: str = None
+    w: int = field(init=True, default=0)
+    h: int = field(init=True, default=0)
+    c: int = field(init=True, default=0)
+
+    probability: int = field(init=True, default=0.5)
+
+    @property
+    def shape(self):
+        return (self.w, self.h, self.c)
+
+    def to_tf(self, tensors):
+        from tensorflow.keras.layers import Dropout
+        return Dropout(rate=self.probability)
+
+
 def len_width(n, f, p, s):
     '''
     n: height or width
