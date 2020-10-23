@@ -210,6 +210,67 @@ class convCFG(Config):
         )  # TODO: Where does groups go
         return layer(tensors[-1]), layer
 
+@layer_builder.register('local')
+@dataclass
+class localCfg(Config):
+    # implementation based on:
+    # https://github.com/thtrieu/darkflow/blob/master/darkflow/dark/convolution.py
+    # l.4-l.25
+    _type: str = None
+    w: int = field(init=True, repr=True, default=0)
+    h: int = field(init=True, repr=True, default=0)
+    c: int = field(init=True, repr=True, default=0)
+
+    size: int = field(init=True, repr=True, default=0)
+    stride: int = field(init=True, repr=True, default=0)
+    pad: int = field(init=True, repr=True, default=0)
+    filters: int = field(init=True, repr=True, default=0)
+    activation: str = field(init=True, repr=False, default='linear')
+    groups: int = field(init=True, repr=False, default=1)
+
+    nweights: int = field(repr=False, default=0)
+    weights: np.array = field(repr=False, default=None)
+    biases: np.array = field(repr=False, default=None)
+
+    def __post_init__(self):
+        self.pad = int(self.pad) * int(self.size / 2) if self.size != 1 else 0
+        self.nweights = int(
+            (self.c / self.groups) * self.filters * self.size * self.size * self.h * self.w)
+        return
+
+    @property
+    def shape(self):
+        w = len_width(self.w, self.size, self.pad, self.stride)
+        h = len_width(self.h, self.size, self.pad, self.stride)
+        return (w, h, self.filters)
+    
+    def load_weights(self, files):
+        self.biases = read_n_floats(self.w *self.h * self.c, files)
+        bytes_read = self.filters
+
+        weights = read_n_floats(self.nweights, files)
+        self.weights = weights.reshape(self.h * self.w, self.filters, self.c, self.size,
+                                       self.size).transpose([0, 3, 4, 2, 1])
+        bytes_read += self.nweights
+        return bytes_read * 4
+
+    def get_weights(self, printing=False):
+        if printing:
+            print(
+                "[weights, biases]"
+            )
+        return [self.weights, self.biases]
+
+    def to_tf(self, tensors):
+        from tensorflow.keras.layers import LocallyConnected2D
+        layer = LocallyConnected2D(
+            filters=self.filters,
+            kernel_size=(self.size, self.size),
+            strides=(self.stride, self.stride),
+            padding='valid',  # currently LocallyConnected2D only supports 'valid
+            activation=activation_function_dn_to_keras_name(self.activation),
+        )
+        return layer(tensors[-1]), layer
 
 @layer_builder.register('shortcut')
 @dataclass
