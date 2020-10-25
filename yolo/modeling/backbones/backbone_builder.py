@@ -85,10 +85,9 @@ class Backbone_Builder(ks.Model):
                 x = ks.layers.MaxPool2D(pool_size=config.kernel_size,
                                         strides=config.strides,
                                         padding=config.padding,
-                                        l2_regularization=self._weight_decay,
                                         name=f"{name}_{i}")(x)
             elif config.name == "DarkRouteProcess":
-                x, _ = nn_blocks.DarkRouteProcess(filters=config.filters,
+                _, x = nn_blocks.DarkRouteProcess(filters=config.filters,
                                                use_bn=config.use_bn,
                                                name=f"{name}_{i}")(x)
             else:
