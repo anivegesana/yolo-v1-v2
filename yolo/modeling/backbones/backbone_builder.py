@@ -41,8 +41,8 @@ class Backbone_Builder(ks.Model):
 
     @staticmethod
     def get_model_config(name):
-        if name == "darknet53":
-            name = "darknet_53"
+        # if name == "darknet53":
+        #     name = "darknet_53"
 
         try:
             backbone = importlib.import_module(
@@ -79,11 +79,13 @@ class Backbone_Builder(ks.Model):
             elif config.name == "darkyolotiny":
                 x = nn_blocks.DarkTiny(filters=config.filters,
                                        strides=config.strides,
+                                       l2_regularization=self._weight_decay,
                                        name=f"{name}_{i}")(x)
             elif config.name == "MaxPool":
                 x = ks.layers.MaxPool2D(pool_size=config.kernel_size,
                                         strides=config.strides,
                                         padding=config.padding,
+                                        l2_regularization=self._weight_decay,
                                         name=f"{name}_{i}")(x)
             elif config.name == "DarkRouteProcess":
                 x, _ = nn_blocks.DarkRouteProcess(filters=config.filters,
