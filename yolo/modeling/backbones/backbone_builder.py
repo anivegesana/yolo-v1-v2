@@ -41,8 +41,8 @@ class Backbone_Builder(ks.Model):
 
     @staticmethod
     def get_model_config(name):
-        if name == "darknet53":
-            name = "darknet_53"
+        # if name == "darknet53":
+        #     name = "darknet_53"
 
         try:
             backbone = importlib.import_module(
@@ -79,6 +79,7 @@ class Backbone_Builder(ks.Model):
             elif config.name == "darkyolotiny":
                 x = nn_blocks.DarkTiny(filters=config.filters,
                                        strides=config.strides,
+                                       l2_regularization=self._weight_decay,
                                        name=f"{name}_{i}")(x)
             elif config.name == "MaxPool":
                 x = ks.layers.MaxPool2D(pool_size=config.kernel_size,
@@ -86,7 +87,7 @@ class Backbone_Builder(ks.Model):
                                         padding=config.padding,
                                         name=f"{name}_{i}")(x)
             elif config.name == "DarkRouteProcess":
-                x, _ = nn_blocks.DarkRouteProcess(filters=config.filters,
+                _, x = nn_blocks.DarkRouteProcess(filters=config.filters,
                                                use_bn=config.use_bn,
                                                name=f"{name}_{i}")(x)
             else:
@@ -99,7 +100,13 @@ class Backbone_Builder(ks.Model):
         return x
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     y = Backbone_Builder(name='yolov1_backbone')
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
     output = y(x)
     output.shape
+=======
+    model = Backbone_Builder(name='yolov1_backbone')
+    model.build(input_shape=(None, 448, 448, 3))
+    model.summary()
+>>>>>>> 1394cb061abcb100dcdb2a352a82525ccc2e0fda

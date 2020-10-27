@@ -11,13 +11,19 @@ from . import configs
 from yolo.modeling.backbones.backbone_builder import Backbone_Builder
 
 class Yolov1Head(tf.keras.Model):
-    def __init__(self, 
-                 model="regular", 
+    def __init__(self,
+                 model="regular",
                  classes=20,
                  S=7,
+<<<<<<< HEAD
                  boxes=3, 
                  config=None, 
                  input_shape=(None, None, None, 512), 
+=======
+                 boxes=3,
+                 config=None,
+                 input_shape=(None, None, None, 1024),
+>>>>>>> 1394cb061abcb100dcdb2a352a82525ccc2e0fda
                  **kwargs):
         """
         Args:
@@ -26,7 +32,7 @@ class Yolov1Head(tf.keras.Model):
             S: integer for the number of grid cells in SxS output
             classes: integer for the number of classes in the prediction
             boxes: integer for the total number of bounding boxes
-            config: 
+            config:
 
         """
 
@@ -37,18 +43,18 @@ class Yolov1Head(tf.keras.Model):
         self._model_name = model
 
         if not isinstance(config, Dict):
-            self._config = self.load_cfg(model) 
+            self._config = self.load_cfg(model)
         else:
             self._model_name = "custom_head"
 
         self._input_shape = input_shape
         self._output_depth = (boxes * 5) + classes
 
-        inputs = ks.layers.Input(shape=self._input_shape[1:])
+        inputs = ks.layers.Input(shape=self._input_shape[None][1:])
         outputs = self._connect_layers(self._config, inputs)
-        super().__init__(inputs=inputs, 
-                         outputs=outputs, 
-                         name=self._model_name, 
+        super().__init__(inputs=inputs,
+                         outputs=outputs,
+                         name=self._model_name,
                          **kwargs)
         return
 
@@ -62,34 +68,35 @@ class Yolov1Head(tf.keras.Model):
             if e.name == configs.__package__ + '.yolov1_' + model:
                 raise ValueError(f"Invlid head '{model}'") from e
             else:
-                raise 
+                raise
         return head_build_block_specs(head)
-    
+
     def _connect_layers(self, layers, inputs):
         x = inputs
         for layer in layers:
             if layer.name == "DarkConv":
-                x = nn_blocks.DarkConv(filters=layer.filters, 
+                x = nn_blocks.DarkConv(filters=layer.filters,
                                         kernel_size=layer.kernel_size,
                                         strides=layer.strides,
-                                        padding=layer.padding, 
+                                        padding=layer.padding,
                                         activation=layer.activation)(x)
             elif layer.name == "Local":
                 if layer.activation == "leaky":
                     act = ks.layers.LeakyReLU(alpha=0.1)
                 else:
                     act = layer.activation
-                x = ks.layers.LocallyConnected2D(filters=layer.filters, 
-                                                 kernel_size=layer.kernel_size, 
+                x = ks.layers.LocallyConnected2D(filters=layer.filters,
+                                                 kernel_size=layer.kernel_size,
                                                  strides=layer.strides,
                                                  padding=layer.padding,
                                                  activation=act)(x)
             elif layer.name == "Dropout":
                 x = ks.layers.Dropout(rate=layer.filters)(x)
             elif layer.name == "Connected":
-                x = ks.layers.Dense(units=layer.filters, 
+                x = ks.layers.Dense(units=layer.filters,
                                     activation=layer.activation)(x)
-        return ks.layers.Reshape((self._S, self._S, self._output_depth))(x)
+        #print(self._S, self._S, self._output_depth)
+        return x#ks.layers.Reshape((self._S, self._S, self._output_depth))(x)
 
 class HeadBlockConfig(object):
     def __init__(self, layer, filters, kernel_size,
@@ -100,7 +107,7 @@ class HeadBlockConfig(object):
         Args:
             layer: string layer name
             filters: integer for the filter for this layer, or the output depth
-            kernel_size: integer or none, if none, it implies that the the building 
+            kernel_size: integer or none, if none, it implies that the the building
                          block handles this automatically. not a layer input
             padding:
             activation:
@@ -123,7 +130,13 @@ def head_build_block_specs(config):
         return specs
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     y = Yolov1Head()
     x = tf.ones(shape=[1, 14, 14, 512], dtype=tf.float32)
     output = y(x)
     y.summary()
+=======
+    head = Yolov1Head()
+    head.build(input_shape=(1, 7, 7, 1024))
+    head.summary()
+>>>>>>> 1394cb061abcb100dcdb2a352a82525ccc2e0fda

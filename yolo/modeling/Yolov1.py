@@ -22,6 +22,7 @@ class Yolov1(base_model.Yolo):
             boxes=2,
             weight_decay = 5e-4,
             policy="float32",
+            using_rt=False,
             **kwargs):
         super().__init__(**kwargs)
 
@@ -52,8 +53,9 @@ class Yolov1(base_model.Yolo):
         self.get_default_attributes()
         self._loss_fn = None
         self._loss_weight = None
+        self._using_rt = using_rt
         return
-    
+
     def get_default_attributes(self):
         pass
 
@@ -80,27 +82,29 @@ class Yolov1(base_model.Yolo):
             self._backbone = Backbone_Builder(
                 name=default_dict[self.model_name]["backbone"],
                 config=default_dict[self.model_name]["backbone"],
-                input_shape=self._input_shape, 
+                input_shape=self._input_shape,
                 weight_decay=self._weight_decay)
         else:
             self._backbone = self._backbone_cfg
             self._custom_aspects = True
-        
+
         if self._head_cfg == None or isinstance(self._head_cfg, Dict):
             if isinstance(self._head_cfg, Dict):
                 default_dict[self.model_name]["head"] = self._head_cfg
+            print(self._backbone.output_shape)
             self._head = Yolov1Head(
                 model=default_dict[self.model_name]["head"],
                 config=default_dict[self.model_name]["head"],
                 classes=self._classes,
                 boxes=self._boxes,
-                input_shape=self._input_shape)
+                input_shape=self._backbone.output_shape)
         else:
             self._head = self._head_cfg
             self._custom_aspects = True
 
         self._model_name = default_dict[self.model_name]["name"]
         self._backbone.build(input_shape)
+        print(self._backbone.output_shape, self._head.input_shape)
         self._head.build(self._backbone.output_shape)
         self._built = True
         super().build(input_shape)
@@ -112,9 +116,10 @@ class Yolov1(base_model.Yolo):
         if training or self._using_rt:
             return {"raw_output": raw_head}
         else:
-            predictions = self._head_filter(raw_head)
+            # predictions = self._head_filter(raw_head)
+            predictions = raw_head # TODO: find out difference between [yolo] and [detection]
             return predictions
-    
+
     def load_weights_from_dn(self,
                              dn2tf_backbone=True,
                              dn2tf_head=True,
@@ -123,7 +128,15 @@ class Yolov1(base_model.Yolo):
         pass
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     y = Yolov1(model = "yolov1")
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
     output = y(x)
     y.summary()
+=======
+    model = Yolov1(model = "yolov1", input_shape=(None, 448, 448, 3))
+    model.build((None, 448, 448, 3))
+    model.summary()
+    tf.keras.utils.plot_model(model._backbone, to_file='yolov1_backbone.jpg', show_shapes=True)
+    tf.keras.utils.plot_model(model._head, to_file='yolov1_head.jpg', show_shapes=True)
+>>>>>>> 1394cb061abcb100dcdb2a352a82525ccc2e0fda
