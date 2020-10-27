@@ -123,6 +123,7 @@ class Yolov1(base_model.Yolo):
         pass
 
 if __name__ == "__main__":
-    model = Yolov1(model = "yolov1")
-    model.build((None, 448, 448, 3))
-    model.summary()
+    y = Yolov1(model = "yolov1")
+    x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
+    output = y(x)
+    y.summary()

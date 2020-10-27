@@ -17,7 +17,7 @@ class Yolov1Head(tf.keras.Model):
                  S=7,
                  boxes=3, 
                  config=None, 
-                 input_shape=(None, None, None, 1024), 
+                 input_shape=(None, None, None, 512), 
                  **kwargs):
         """
         Args:
@@ -123,6 +123,7 @@ def head_build_block_specs(config):
         return specs
 
 if __name__ == "__main__":
-    head = Yolov1Head()
-    head.build(input_shape=(1, 7, 7, 1024))
-    head.summary()
+    y = Yolov1Head()
+    x = tf.ones(shape=[1, 14, 14, 512], dtype=tf.float32)
+    output = y(x)
+    y.summary()

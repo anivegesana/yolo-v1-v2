@@ -99,6 +99,7 @@ class Backbone_Builder(ks.Model):
         return x
 
 if __name__ == "__main__":
-    model = Backbone_Builder(name='yolov1_backbone')
-    model.build(input_shape=(None, 448, 448, 3))
-    model.summary()
+    y = Backbone_Builder(name='yolov1_backbone')
+    x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
+    output = y(x)
+    output.shape
