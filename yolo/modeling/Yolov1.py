@@ -128,15 +128,7 @@ class Yolov1(base_model.Yolo):
         pass
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     y = Yolov1(model = "yolov1")
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
     output = y(x)
     y.summary()
-=======
-    model = Yolov1(model = "yolov1", input_shape=(None, 448, 448, 3))
-    model.build((None, 448, 448, 3))
-    model.summary()
-    tf.keras.utils.plot_model(model._backbone, to_file='yolov1_backbone.jpg', show_shapes=True)
-    tf.keras.utils.plot_model(model._head, to_file='yolov1_head.jpg', show_shapes=True)
->>>>>>> 1394cb061abcb100dcdb2a352a82525ccc2e0fda

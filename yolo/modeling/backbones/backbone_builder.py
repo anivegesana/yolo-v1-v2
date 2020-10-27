@@ -100,13 +100,7 @@ class Backbone_Builder(ks.Model):
         return x
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     y = Backbone_Builder(name='yolov1_backbone')
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
     output = y(x)
     output.shape
-=======
-    model = Backbone_Builder(name='yolov1_backbone')
-    model.build(input_shape=(None, 448, 448, 3))
-    model.summary()
->>>>>>> 1394cb061abcb100dcdb2a352a82525ccc2e0fda
