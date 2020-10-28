@@ -234,8 +234,14 @@ class localCfg(Config):
 
     def __post_init__(self):
         self.pad = int(self.pad) * int(self.size / 2) if self.size != 1 else 0
+        
         self.nweights = int(
-            (self.c / self.groups) * self.filters * self.size * self.size * self.h * self.w)
+            (self.c / self.groups) * self.filters * self.size * self.size * self.w * self.h)
+
+        # w = len_width(self.w, self.size, self.pad, self.stride)
+        # h = len_width(self.h, self.size, self.pad, self.stride)
+        # self.nweights = int(
+        #     (self.c / self.groups) * self.filters * self.size * self.size * w * h)
         return
 
     @property
@@ -245,7 +251,7 @@ class localCfg(Config):
         return (w, h, self.filters)
     
     def load_weights(self, files):
-        self.biases = read_n_floats(self.w *self.h * self.c, files)
+        self.biases = read_n_floats(self.w *self.h * self.filters, files)
         bytes_read = self.filters
 
         weights = read_n_floats(self.nweights, files)
@@ -557,3 +563,13 @@ def get_primitive_tf_layer_name(var, piece=3):
     if token[0].upper() == token[0]:
         return cid, token
     return cid, ''.join([x.capitalize() for x in token.split('_')])
+
+# Testing locally connected config:
+if __name__ == "__main__":
+    config_path = "yolo/utils/_darknet2tf/test_locally_connected_config.cfg"
+    weights_path = "D:/yolov1.weights"
+
+    from yolo.utils import DarkNetConverter
+    converter = DarkNetConverter()
+    converter.read(config_file=config_path, weights_file=weights_path).to_tf()
+    
