@@ -235,13 +235,10 @@ class localCfg(Config):
     def __post_init__(self):
         self.pad = int(self.pad) * int(self.size / 2) if self.size != 1 else 0
         
+        w = len_width(self.w, self.size, self.pad, self.stride)
+        h = len_width(self.h, self.size, self.pad, self.stride)
         self.nweights = int(
-            (self.c / self.groups) * self.filters * self.size * self.size * self.w * self.h)
-
-        # w = len_width(self.w, self.size, self.pad, self.stride)
-        # h = len_width(self.h, self.size, self.pad, self.stride)
-        # self.nweights = int(
-        #     (self.c / self.groups) * self.filters * self.size * self.size * w * h)
+            (self.c / self.groups) * self.filters * self.size * self.size * w * h)
         return
 
     @property
@@ -251,8 +248,11 @@ class localCfg(Config):
         return (w, h, self.filters)
     
     def load_weights(self, files):
-        self.biases = read_n_floats(self.w *self.h * self.filters, files)
-        bytes_read = self.filters
+        w = len_width(self.w, self.size, self.pad, self.stride)
+        h = len_width(self.h, self.size, self.pad, self.stride)
+        self.biases = read_n_floats(w * h * self.filters, files)
+
+        bytes_read = self.filters * w * h
 
         weights = read_n_floats(self.nweights, files)
         self.weights = weights.reshape(self.h * self.w, self.filters, self.c, self.size,
@@ -535,7 +535,7 @@ class connectedCFG(Config):
         self.biases = read_n_floats(self.output, files)
         bytes_read = self.output
         weights = read_n_floats(self.nweights, files)
-        self.weights = weights.reshape(self.c * self.w * self.h, self.output).transpose([1, 0])
+        self.weights = weights.reshape(self.c * self.w * self.h, self.output)
         bytes_read += self.nweights
         return bytes_read * 4
 
@@ -545,7 +545,7 @@ class connectedCFG(Config):
         return [self.weights, self.biases]
 
     def to_tf(self, tensors):
-        from keras import Dense
+        from tensorflow.keras.layers import Dense
         layer = Dense(
             self.output,
             activation=activation_function_dn_to_keras_name(self.activation)
@@ -569,7 +569,8 @@ class dropoutCFG(Config):
 
     def to_tf(self, tensors):
         from tensorflow.keras.layers import Dropout
-        return Dropout(rate=self.probability)(tensors[-1])
+        dropout = Dropout(rate=self.probability)
+        return dropout(tensors[-1])
 
 
 def len_width(n, f, p, s):
@@ -645,4 +646,7 @@ if __name__ == "__main__":
 
     from yolo.utils import DarkNetConverter
     converter = DarkNetConverter()
-    converter.read(config_file=config_path, weights_file=weights_path).to_tf()
+    x = converter.read(config_file=config_path, weights_file=weights_path)
+    print("Weights loaded successfully")
+    x = x.to_tf()
+    print("Layers converted to TF successfully")
