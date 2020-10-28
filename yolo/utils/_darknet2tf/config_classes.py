@@ -533,7 +533,7 @@ class connectedCFG(Config):
 
     @property
     def shape(self):
-        return (1, self.output)
+        return (self.output,)
 
     def load_weights(self, files):
         self.biases = read_n_floats(self.output, files)
@@ -549,12 +549,15 @@ class connectedCFG(Config):
         return [self.weights, self.biases]
 
     def to_tf(self, tensors):
-        from tensorflow.keras.layers import Dense
-        layer = Dense(
+        from tensorflow.keras.layers import Dense, Flatten
+        import tensorflow as tf
+
+        layer1 = Flatten()
+        layer2 = Dense(
             self.output,
             activation=activation_function_dn_to_keras_name(self.activation)
         )
-        return layer(tensors[-1]), layer
+        return layer2(layer1(tensors[-1])), layer2
 
 
 @layer_builder.register('dropout')
