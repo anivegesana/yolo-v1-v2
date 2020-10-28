@@ -19,7 +19,7 @@ class Yolov1(base_model.Yolo):
             classes=20,
             backbone=None,
             head=None,
-            boxes=2,
+            boxes=3,
             weight_decay = 5e-4,
             policy="float32",
             using_rt=False,
@@ -128,7 +128,7 @@ class Yolov1(base_model.Yolo):
         pass
 
 if __name__ == "__main__":
-    y = Yolov1(model = "yolov1")
+    y = Yolov1(model = "yolov1", input_shape=[1, 448, 448, 3])
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
     output = y(x)
     y.summary()

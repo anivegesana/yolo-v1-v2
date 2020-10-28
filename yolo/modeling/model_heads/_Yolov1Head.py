@@ -90,7 +90,7 @@ class Yolov1Head(tf.keras.Model):
                 x = ks.layers.Dense(units=layer.filters,
                                     activation=layer.activation)(x)
         #print(self._S, self._S, self._output_depth)
-        return x#ks.layers.Reshape((self._S, self._S, self._output_depth))(x)
+        return ks.layers.Reshape((self._S, self._S, self._output_depth))(x)
 
 class HeadBlockConfig(object):
     def __init__(self, layer, filters, kernel_size,
@@ -124,7 +124,7 @@ def head_build_block_specs(config):
         return specs
 
 if __name__ == "__main__":
-    y = Yolov1Head()
-    x = tf.ones(shape=[1, 14, 14, 512], dtype=tf.float32)
+    y = Yolov1Head(input_shape=[1, 13, 13, 512])
+    x = tf.ones(shape=[1, 13, 13, 512], dtype=tf.float32)
     output = y(x)
     y.summary()
