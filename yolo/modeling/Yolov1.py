@@ -129,6 +129,5 @@ class Yolov1(base_model.Yolo):
 
 if __name__ == "__main__":
     y = Yolov1(model = "yolov1", input_shape=[1, 448, 448, 3])
-    x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
-    output = y(x)
+    y.build(input_shape=[1, 448, 448, 3])
     y.summary()
