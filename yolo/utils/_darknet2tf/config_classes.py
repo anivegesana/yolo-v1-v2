@@ -268,14 +268,20 @@ class localCfg(Config):
         return [self.weights, self.biases]
 
     def to_tf(self, tensors):
-        from tensorflow.keras.layers import LocallyConnected2D
-        layer = LocallyConnected2D(
+        from tensorflow.keras.layers import LocallyConnected2D, ZeroPadding2D
+
+        zero_pad_layer = ZeroPadding2D(
+            padding='valid'
+        )
+        local_layer = LocallyConnected2D(
             filters=self.filters,
             kernel_size=(self.size, self.size),
             strides=(self.stride, self.stride),
             padding='valid',  # currently LocallyConnected2D only supports 'valid
             activation=activation_function_dn_to_keras_name(self.activation),
         )
+
+        layer = local_layer(zero_pad_layer)
         return layer(tensors[-1]), layer
 
 @layer_builder.register('shortcut')
@@ -502,6 +508,7 @@ class maxpoolCFG(Config):
 @layer_builder.register('connected')
 @dataclass
 class connectedCFG(Config):
+    # Used as guide: https://github.com/thtrieu/darkflow/blob/master/darkflow/dark/connected.py
     _type: str = None
     w: int = field(init=True, repr=True, default=0)
     h: int = field(init=True, repr=True, default=0)
@@ -514,18 +521,23 @@ class connectedCFG(Config):
     biases: np.array = field(repr=False, default=None) 
     weights: np.array = field(repr=False, default=None)
 
+    def __post_init__(self):
+        # number of weights (exlucding bias = input size * output size)
+        self.nweights = int(
+            self.c * self.w * self.h * self.output)
+        return
+    
     @property
     def shape(self):
-        return (self.w, self.h, self.output)
+        return (1, self.output)
 
     def load_weights(self, files):
-        self.biases = read_n_floats(self.nweights, files)
+        self.biases = read_n_floats(self.output, files)
+        bytes_read = self.output
         weights = read_n_floats(self.nweights, files)
-        # [TODO] verify this reshape works
-        self.weights = weights.reshape(self.filters, self.c, self.size,
-                                       self.size).transpose([2, 3, 1, 0])
-        # 4 bytes per float, 1 float per weight, bias
-        return 8 * self.nweights
+        self.weights = weights.reshape(self.c * self.w * self.h, self.output).transpose([1, 0])
+        bytes_read += self.nweights
+        return bytes_read * 4
 
     def get_weights(self, printing=False):
         if printing:
@@ -538,7 +550,7 @@ class connectedCFG(Config):
             self.output,
             activation=activation_function_dn_to_keras_name(self.activation)
         )
-        return layer(tensors[-1])
+        return layer(tensors[-1]), layer
 
 
 @layer_builder.register('dropout')
