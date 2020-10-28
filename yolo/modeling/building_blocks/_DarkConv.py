@@ -98,7 +98,8 @@ class DarkConv(ks.layers.Layer):
             self._kernel_size) == int else self._kernel_size[0]
         if self._padding == "same" and kernel_size != 1:
             self._zeropad = ks.layers.ZeroPadding2D(
-                ((1, 1), (1, 1)))  # symetric padding
+            padding = kernel_size - 1
+            self._zeropad = ks.layers.ZeroPadding2D(((padding//2, padding//2), (padding//2, padding//2))) 
         else:
             self._zeropad = Identity()
 

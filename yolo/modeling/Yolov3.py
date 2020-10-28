@@ -21,21 +21,20 @@ class Yolov3(base_model.Yolo):
             backbone=None,
             head=None,
             head_filter=None,
-            masks=None,
-            boxes=None,
+            weight_decay = 5e-4,
+            clip_grads_norm = None,
+            thresh: int = 0.45,
+            class_thresh: int = 0.45,
             path_scales=None,
             x_y_scales=None,
-            thresh: int = 0.45,
-            weight_decay = 5e-4, 
-            class_thresh: int = 0.45,
-            use_nms = True,
-            using_rt = False,
+            use_tie_breaker: bool = False,
+            masks=None,
+            anchors=None,
             max_boxes: int = 200,
             scale_boxes: int = 416,
-            scale_mult: float = 1.0,
-            use_tie_breaker: bool = False,
-            clip_grads_norm = None, 
-            policy="float32",
+            policy = None, 
+            use_nms = True,
+            using_rt = False,
             **kwargs):
         super().__init__(**kwargs)
 
@@ -48,24 +47,26 @@ class Yolov3(base_model.Yolo):
         self._custom_aspects = False
 
         #setting the running policy
-        if type(policy) != str:
-            policy = policy.name
-        self._og_policy = policy
-        self._policy = tf.keras.mixed_precision.experimental.global_policy(
-        ).name
-        self.set_policy(policy=policy)
+        if policy == None:
+            if type(policy) != str:
+                policy = policy.name
+            self._og_policy = policy
+            self._policy = tf.keras.mixed_precision.experimental.global_policy().name
+            self.set_policy(policy=policy)
+        else:
+            self._og_policy = tf.keras.mixed_precision.experimental.global_policy().name
+            self._policy = self._og_policy
 
         #filtering params
         self._thresh = thresh
-        self._class_thresh = 0.45
+        self._class_thresh = class_thresh
         self._max_boxes = max_boxes
         self._scale_boxes = scale_boxes
-        self._scale_mult = scale_mult
         self._x_y_scales = x_y_scales
 
         #init base params
         self._encoder_decoder_split_location = None
-        self._boxes = boxes
+        self._boxes = anchors
         self._masks = masks
         self._path_scales = path_scales
         self._use_tie_breaker = use_tie_breaker
@@ -88,6 +89,14 @@ class Yolov3(base_model.Yolo):
         self._loss_weight = None
         return
 
+    @property
+    def backbone():
+        return self._backbone
+
+    @property
+    def head():
+        return self._head
+
     def get_default_attributes(self):
         if self.model_name == "regular" or self.model_name == "spp":
             self._encoder_decoder_split_location = 76
@@ -95,27 +104,27 @@ class Yolov3(base_model.Yolo):
                                           (30, 61), (62, 45), (59, 119),
                                           (116, 90), (156, 198), (373, 326)]
             self._masks = self._masks or {
-                "1024": [6, 7, 8],
-                "512": [3, 4, 5],
-                "256": [0, 1, 2]
+                5: [6, 7, 8],
+                4: [3, 4, 5],
+                3: [0, 1, 2]
             }
             self._path_scales = self._path_scales or {
-                "1024": 32,
-                "512": 16,
-                "256": 8
+                5: 32,
+                4: 16,
+                3: 8
             }
             self._x_y_scales = self._x_y_scales or {
-                "1024": 1.0,
-                "512": 1.0,
-                "256": 1.0
+                5: 1.0,
+                4: 1.0,
+                3: 1.0
             }
         elif self.model_name == "tiny":
             self._encoder_decoder_split_location = 14
             self._boxes = self._boxes or [(10, 14), (23, 27), (37, 58),
                                           (81, 82), (135, 169), (344, 319)]
-            self._masks = self._masks or {"1024": [3, 4, 5], "256": [0, 1, 2]}
-            self._path_scales = self._path_scales or {"1024": 32, "256": 8}
-            self._x_y_scales = self._x_y_scales or {"1024": 1.0, "256": 1.0}
+            self._masks = self._masks or {5: [3, 4, 5], 3: [0, 1, 2]}
+            self._path_scales = self._path_scales or {5: 32, 3: 8}
+            self._x_y_scales = self._x_y_scales or {5: 1.0, 3: 1.0}
         return
 
     def get_summary(self):
@@ -129,17 +138,17 @@ class Yolov3(base_model.Yolo):
     def build(self, input_shape):
         default_dict = {
             "regular": {
-                "backbone": "darknet53",
+                "backbone": "regular",
                 "head": "regular",
                 "name": "yolov3"
             },
             "spp": {
-                "backbone": "darknet53",
+                "backbone": "regular",
                 "head": "spp",
                 "name": "yolov3-spp"
             },
             "tiny": {
-                "backbone": "darknet_tiny",
+                "backbone": "tiny",
                 "head": "tiny",
                 "name": "yolov3-tiny"
             }
@@ -151,12 +160,12 @@ class Yolov3(base_model.Yolo):
             self._backbone = Backbone_Builder(
                 name=default_dict[self.model_name]["backbone"],
                 config=default_dict[self.model_name]["backbone"],
-                input_shape=self._input_shape, 
+                input_shape=self._input_shape,
                 weight_decay=self._weight_decay)
         else:
             self._backbone = self._backbone_cfg
             self._custom_aspects = True
-        
+
         if self._head_cfg == None or isinstance(self._head_cfg, Dict):
             if isinstance(self._head_cfg, Dict):
                 default_dict[self.model_name]["head"] = self._head_cfg
@@ -165,22 +174,21 @@ class Yolov3(base_model.Yolo):
                 cfg_dict=default_dict[self.model_name]["head"],
                 classes=self._classes,
                 boxes=len(self._boxes),
-                input_shape=self._input_shape)
+                input_shape=self._input_shape,
+                weight_decay=self._weight_decay)
         else:
             self._head = self._head_cfg
             self._custom_aspects = True
 
         if self._head_filter_cfg == None:
             self._head_filter = YoloLayer(masks=self._masks,
-                                        anchors=self._boxes,
-                                        thresh=self._thresh,
-                                        cls_thresh=self._class_thresh,
-                                        max_boxes=self._max_boxes,
-                                        scale_boxes=self._scale_boxes,
-                                        scale_mult=self._scale_mult,
-                                        path_scale=self._path_scales, 
-                                        scale_xy=self._x_y_scales,
-                                        use_nms=self._use_nms)
+                                          anchors=self._boxes,
+                                          thresh=self._thresh,
+                                          cls_thresh=self._class_thresh,
+                                          max_boxes=self._max_boxes,
+                                          path_scale=self._path_scales,
+                                          scale_xy=self._x_y_scales,
+                                          use_nms=self._use_nms)
         else:
             self._head_filter = self._head_filter_cfg
 
@@ -260,29 +268,31 @@ if __name__ == "__main__":
     from yolo.utils.testing_utils import prep_gpu
     from yolo.training.call_backs.PrintingCallBack import Printer
     prep_gpu()
-    train, info = tfds.load('coco',
-                            split='train',
-                            shuffle_files=True,
-                            with_info=True)
-    test, info = tfds.load('coco',
-                           split='validation',
-                           shuffle_files=False,
-                           with_info=True)
+    # train, info = tfds.load('coco',
+    #                         split='train',
+    #                         shuffle_files=True,
+    #                         with_info=True)
+    # test, info = tfds.load('coco',
+    #                        split='validation',
+    #                        shuffle_files=False,
+    #                        with_info=True)
 
     model = Yolov3(model = "regular", policy="float32", use_tie_breaker=False)
-    model.load_weights_from_dn(dn2tf_head=False, weights_file="testing_weights/yolov3-regular.weights")
+    model.build(input_shape = [None, None, None, 3])
+    model.summary()
+    # model.load_weights_from_dn(dn2tf_head=False, weights_file="testing_weights/yolov3-regular.weights")
 
-    train, test = model.process_datasets(train, test, fixed_size = False , batch_size=1, jitter_im = 0.1, jitter_boxes = 0.005, _eval_is_training = False)
-    loss_fn = model.generate_loss(loss_type="ciou")
+    # train, test = model.process_datasets(train, test, fixed_size = False , batch_size=1, jitter_im = 0.1, jitter_boxes = 0.005, _eval_is_training = False)
+    # loss_fn = model.generate_loss(loss_type="ciou")
 
-    #optimizer = ks.optimizers.SGD(lr=1e-3)
-    optimizer = ks.optimizers.Adam(lr=1e-3)
-    optimizer = model.match_optimizer_to_policy(optimizer)
-    model.compile(optimizer=optimizer, loss=loss_fn)
+    # #optimizer = ks.optimizers.SGD(lr=1e-3)
+    # optimizer = ks.optimizers.Adam(lr=1e-3)
+    # optimizer = model.match_optimizer_to_policy(optimizer)
+    # model.compile(optimizer=optimizer, loss=loss_fn)
 
-    try:
-        model.fit(train, validation_data = test, epochs = 40, verbose = 1, shuffle = True)
-        model.save_weights("testing_weights/yolov3/simple_test1")
-    except:
-        model.save_weights("testing_weights/yolov3/simple_test1_early")
-    #model.evaluate(test)
+    # try:
+    #     model.fit(train, validation_data = test, epochs = 40, verbose = 1, shuffle = True)
+    #     model.save_weights("testing_weights/yolov3/simple_test1")
+    # except:
+    #     model.save_weights("testing_weights/yolov3/simple_test1_early")
+    # #model.evaluate(test)

@@ -16,11 +16,12 @@ class Backbone_Builder(ks.Model):
                  name,
                  input_shape=(None, None, None, 3),
                  config=None,
-                 weight_decay = 5e-4, 
+                 weight_decay = 5e-4,
                  **kwargs):
         self._layer_dict = {
             "DarkRes": nn_blocks.DarkResidual,
             "DarkUpsampleRoute": nn_blocks.DarkUpsampleRoute,
+            "DarkRouteProcess": nn_blocks.DarkRouteProcess,
             "DarkBlock": None
         }
 
@@ -40,8 +41,8 @@ class Backbone_Builder(ks.Model):
 
     @staticmethod
     def get_model_config(name):
-        if name == "darknet53":
-            name = "darknet_53"
+        # if name == "darknet53":
+        #     name = "darknet_53"
 
         try:
             backbone = importlib.import_module(
@@ -51,7 +52,6 @@ class Backbone_Builder(ks.Model):
                 raise ValueError(f"Invlid backbone '{name}'") from e
             else:
                 raise
-
         return build_block_specs(backbone)
 
     def _build_struct(self, net, inputs):
@@ -74,16 +74,22 @@ class Backbone_Builder(ks.Model):
                                        strides=config.strides,
                                        padding=config.padding,
                                        l2_regularization=self._weight_decay,
+                                       use_bn=config.use_bn,
                                        name=f"{name}_{i}")(x)
             elif config.name == "darkyolotiny":
                 x = nn_blocks.DarkTiny(filters=config.filters,
                                        strides=config.strides,
+                                       l2_regularization=self._weight_decay,
                                        name=f"{name}_{i}")(x)
             elif config.name == "MaxPool":
                 x = ks.layers.MaxPool2D(pool_size=config.kernel_size,
                                         strides=config.strides,
                                         padding=config.padding,
                                         name=f"{name}_{i}")(x)
+            elif config.name == "DarkRouteProcess":
+                _, x = nn_blocks.DarkRouteProcess(filters=config.filters,
+                                               use_bn=config.use_bn,
+                                               name=f"{name}_{i}")(x)
             else:
                 layer = self._layer_dict[config.name]
                 x = layer(filters=config.filters,
@@ -92,3 +98,9 @@ class Backbone_Builder(ks.Model):
                           name=f"{name}_{i}")(x)
             i += 1
         return x
+
+if __name__ == "__main__":
+    y = Backbone_Builder(name='yolov1_backbone')
+    x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
+    output = y(x)
+    output.shape
