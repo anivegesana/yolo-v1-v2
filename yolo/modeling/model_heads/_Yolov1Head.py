@@ -15,9 +15,9 @@ class Yolov1Head(tf.keras.Model):
                  model="regular",
                  classes=20,
                  S=7,
-                 boxes=3, 
-                 config=None, 
-                 input_shape=(None, None, None, 512), 
+                 boxes=3,
+                 config=None,
+                 input_shape=(None, None, None, 512),
                  **kwargs):
         """
         Args:
@@ -79,10 +79,11 @@ class Yolov1Head(tf.keras.Model):
                     act = ks.layers.LeakyReLU(alpha=0.1)
                 else:
                     act = layer.activation
+                x = ks.layers.ZeroPadding2D(padding=layer.padding)(x)
                 x = ks.layers.LocallyConnected2D(filters=layer.filters,
                                                  kernel_size=layer.kernel_size,
                                                  strides=layer.strides,
-                                                 padding=layer.padding,
+                                                 padding='valid',
                                                  activation=act)(x)
             elif layer.name == "Dropout":
                 x = ks.layers.Dropout(rate=layer.filters)(x)
