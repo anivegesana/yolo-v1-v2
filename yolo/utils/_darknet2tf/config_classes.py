@@ -268,11 +268,15 @@ class localCfg(Config):
         return [self.weights, self.biases]
 
     def to_tf(self, tensors):
-        from tensorflow.keras.layers import LocallyConnected2D, ZeroPadding2D
+        from tensorflow.keras.layers import LocallyConnected2D, ZeroPadding2D, LeakyReLU
 
         zero_pad_layer = ZeroPadding2D(
             padding=self.pad
         )
+
+        if self.activation == "leaky":
+            self.activation = LeakyReLU(alpha=0.1)
+        
         local_layer = LocallyConnected2D(
             filters=self.filters,
             kernel_size=(self.size, self.size),
@@ -281,8 +285,8 @@ class localCfg(Config):
             activation=activation_function_dn_to_keras_name(self.activation),
         )
 
-        layer = local_layer(zero_pad_layer)
-        return layer(tensors[-1]), layer
+        return local_layer(zero_pad_layer(tensors[-1])), local_layer
+        #return local_layer(tensors[-1]), local_layer
 
 @layer_builder.register('shortcut')
 @dataclass
