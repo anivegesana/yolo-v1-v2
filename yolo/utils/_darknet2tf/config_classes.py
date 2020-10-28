@@ -432,6 +432,48 @@ class maxpoolCFG(Config):
                             padding='same')(tensors[-1])
 
 
+@layer_builder.register('connected')
+@dataclass
+class connectedCFG(Config):
+    _type: str = None
+    w: int = field(init=True, repr=True, default=0)
+    h: int = field(init=True, repr=True, default=0)
+    c: int = field(init=True, repr=True, default=0)
+
+    output: int = field(init=True, repr=True, default=1715)
+    activation: str = field(init=True, repr=False, default='linear')
+
+    nweights: int = field(repr=False, default=0)
+    biases: np.array = field(repr=False, default=None) 
+    weights: np.array = field(repr=False, default=None)
+
+    @property
+    def shape(self):
+        return (self.w, self.h, self.output)
+
+    def load_weights(self, files):
+        self.biases = read_n_floats(self.nweights, files)
+        weights = read_n_floats(self.nweights, files)
+        # [TODO] verify this reshape works
+        self.weights = weights.reshape(self.filters, self.c, self.size,
+                                       self.size).transpose([2, 3, 1, 0])
+        # 4 bytes per float, 1 float per weight, bias
+        return 8 * self.nweights
+
+    def get_weights(self, printing=False):
+        if printing:
+            print("[weights, biases]")
+        return [self.weights, self.biases]
+
+    def to_tf(self, tensors):
+        from keras import Dense
+        layer = Dense(
+            self.output,
+            activation=activation_function_dn_to_keras_name(self.activation)
+        )
+        return layer(tensors[-1])
+
+
 @layer_builder.register('dropout')
 @dataclass
 class dropoutCFG(Config):
@@ -448,7 +490,7 @@ class dropoutCFG(Config):
 
     def to_tf(self, tensors):
         from tensorflow.keras.layers import Dropout
-        return Dropout(rate=self.probability)
+        return Dropout(rate=self.probability)(tensors[-1])
 
 
 def len_width(n, f, p, s):
@@ -515,3 +557,7 @@ def get_primitive_tf_layer_name(var, piece=3):
     if token[0].upper() == token[0]:
         return cid, token
     return cid, ''.join([x.capitalize() for x in token.split('_')])
+
+
+if __name__ == "__main__":
+    
