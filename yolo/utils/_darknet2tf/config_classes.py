@@ -152,7 +152,7 @@ class convCFG(Config):
     rolling_variance: np.array = field(repr=False, default=None)
 
     def __post_init__(self):
-        self.pad = int(self.pad) if self.size != 1 else 0
+        self.pad = (self.size - 1) // 2
         self.nweights = int(
             (self.c / self.groups) * self.filters * self.size * self.size)
         return
@@ -203,7 +203,7 @@ class convCFG(Config):
             filters=self.filters,
             kernel_size=(self.size, self.size),
             strides=(self.stride, self.stride),
-            padding='same',  # TODO: THIS ONE
+            padding='same',
             dilation_rate=(self.dilation, self.dilation),
             use_bn=bool(self.batch_normalize),
             activation=activation_function_dn_to_keras_name(self.activation),
@@ -234,7 +234,7 @@ class localCfg(Config):
 
     def __post_init__(self):
         self.pad = int(self.pad) * int(self.size / 2) if self.size != 1 else 0
-        
+
         w = len_width(self.w, self.size, self.pad, self.stride)
         h = len_width(self.h, self.size, self.pad, self.stride)
         self.nweights = int(
@@ -246,7 +246,7 @@ class localCfg(Config):
         w = len_width(self.w, self.size, self.pad, self.stride)
         h = len_width(self.h, self.size, self.pad, self.stride)
         return (w, h, self.filters)
-    
+
     def load_weights(self, files):
         w = len_width(self.w, self.size, self.pad, self.stride)
         h = len_width(self.h, self.size, self.pad, self.stride)
@@ -271,7 +271,7 @@ class localCfg(Config):
         from tensorflow.keras.layers import LocallyConnected2D, ZeroPadding2D
 
         zero_pad_layer = ZeroPadding2D(
-            padding='valid'
+            padding=self.pad
         )
         local_layer = LocallyConnected2D(
             filters=self.filters,
@@ -518,7 +518,7 @@ class connectedCFG(Config):
     activation: str = field(init=True, repr=False, default='linear')
 
     nweights: int = field(repr=False, default=0)
-    biases: np.array = field(repr=False, default=None) 
+    biases: np.array = field(repr=False, default=None)
     weights: np.array = field(repr=False, default=None)
 
     def __post_init__(self):
@@ -526,7 +526,7 @@ class connectedCFG(Config):
         self.nweights = int(
             self.c * self.w * self.h * self.output)
         return
-    
+
     @property
     def shape(self):
         return (1, self.output)
