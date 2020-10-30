@@ -550,7 +550,6 @@ class connectedCFG(Config):
 
     def to_tf(self, tensors):
         from tensorflow.keras.layers import Dense, Flatten
-        import tensorflow as tf
 
         layer1 = Flatten()
         layer2 = Dense(
@@ -559,12 +558,56 @@ class connectedCFG(Config):
         )
         return layer2(layer1(tensors[-1])), layer2
 
+@layer_builder.register('detection')
+@dataclass
+class detectionCFG(Config):
+    _type: str = None
+    w: int = field(init=True, repr=True, default=0)
+    h: int = field(init=True, repr=True, default=0)
+    c: int = field(init=True, repr=True, default=0)
+
+    classes: int = field(init=True, repr=True, default=20)
+    coords: int = field(init=True, repr=True, default=4)
+    rescore: int = field(init=True, repr=True, default=1)
+    side: int = field(init=True, repr=True, default=7)
+    num: int = field(init=True, repr=True, default=3)
+    softmax: int = field(init=True, repr=True, default=0)
+    sqrt: int = field(init=True, repr=True, default=1)
+    jitter: float = field(init=True, repr=True, default=0.2)
+
+    object_scale: int = field(init=True, repr=True, default=1)
+    noobject_scale: int = field(init=True, repr=True, default=0.5)
+    class_scale: int = field(init=True, repr=True, default=1)
+    coord_scale: int = field(init=True, repr=True, default=5)
+
+    @classmethod
+    def from_dict(clz, net, layer_dict):
+        if 'w' not in layer_dict:
+            prevlayer = net[-1]
+            l = {
+                "w": prevlayer.shape[0],
+                **layer_dict
+            }
+        else:
+            l = layer_dict
+        return clz(**l)
+    
+    @property
+    def shape(self):
+        return (self.side, self.side, self.num * 5 + self.classes)
+
+    def to_tf(self, tensors):
+        from tensorflow.keras.layers import Reshape
+        shape = (self.side, self.side, self.num * 5 + self.classes)
+        layer = Reshape(shape)
+        return layer(tensors[-1])
+    
 
 @layer_builder.register('dropout')
 @dataclass
 class dropoutCFG(Config):
     _type: str = None
-    w: int = field(init=True, default=0)
+    w: int = field(init=True, default=1715)
     h: int = field(init=True, default=0)
     c: int = field(init=True, default=0)
 
