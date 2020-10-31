@@ -79,6 +79,7 @@ class Yolov1Head(tf.keras.Model):
                     act = ks.layers.LeakyReLU(alpha=0.1)
                 else:
                     act = layer.activation
+                x = ks.layers.ZeroPadding2D(padding=layer.padding)(x)
                 x = ks.layers.LocallyConnected2D(filters=layer.filters,
                                                  kernel_size=layer.kernel_size,
                                                  strides=layer.strides,
