@@ -40,10 +40,7 @@ class Yolo(tf.keras.Model, ABC):
                             image_h=image_h,
                             fixed_size=fixed_size,
                             jitter_im=jitter_im,
-                            jitter_boxes=jitter_boxes,
-                            max_num_instances=self._max_boxes,
-                            masks=self._masks,
-                            anchors=self._boxes)
+                            jitter_boxes=jitter_boxes)
         post = YoloPostProcessing(image_w=image_w,image_h=image_h)
         train_parser = parser.parse_fn(is_training= True)
         test_parser = parser.parse_fn(is_training=_eval_is_training)
@@ -72,14 +69,13 @@ class Yolo(tf.keras.Model, ABC):
         loss_class = 0.0
         metric_dict = dict()
 
-        for key in y_pred.keys():
-            _loss, _loss_box, _loss_conf, _loss_class, _avg_iou, _recall50 = self._loss_fn[key](label, y_pred[key])
-            loss += _loss
-            loss_box += _loss_box
-            loss_conf += _loss_conf
-            loss_class += _loss_class
-            metric_dict[f"recall50_{key}"] = tf.stop_gradient(_recall50)
-            metric_dict[f"avg_iou_{key}"] =  tf.stop_gradient(_avg_iou)
+        _loss, _loss_box, _loss_conf, _loss_class, _avg_iou, _recall50 = self._loss_fn(label, y_pred[key])
+        loss += _loss
+        loss_box += _loss_box
+        loss_conf += _loss_conf
+        loss_class += _loss_class
+        metric_dict[f"recall50"] = tf.stop_gradient(_recall50)
+        metric_dict[f"avg_iou"] =  tf.stop_gradient(_avg_iou)
         
         metric_dict["box_loss"] = loss_box
         metric_dict["conf_loss"] = loss_conf
@@ -138,9 +134,7 @@ class Yolo(tf.keras.Model, ABC):
         return loss_metrics
 
     def generate_loss(self,
-                      ignore_thresh: float = 0.7, 
-                      truth_thresh: float = 1.0,
-                      loss_type="ciou") -> "Dict[Yolo_Loss]":
+                      ignore_thresh: float = 0.7) -> "Dict[Yolo_Loss]":
         """
         Create loss function instances for each of the detection heads.
 
@@ -148,21 +142,12 @@ class Yolo(tf.keras.Model, ABC):
             scale: the amount by which to scale the anchor boxes that were
                    provided in __init__
         """
-        from yolo.modeling.functions.yolo_loss import Yolo_Loss
-        loss_dict = {}
-        for key in self._masks.keys():
-            loss_dict[key] = Yolo_Loss(classes = self._classes,
-                                       anchors=self._boxes,
-                                       ignore_thresh=ignore_thresh,
-                                       truth_thresh=truth_thresh,
-                                       loss_type=loss_type,
-                                       path_key=key,
-                                       mask=self._masks[key],
-                                       scale_anchors=self._path_scales[key],
-                                       scale_x_y=self._x_y_scales[key],
-                                       use_tie_breaker=self._use_tie_breaker)
-        self._loss_fn = loss_dict
-        return loss_dict
+        from yolo.modeling.functions.yolo_v1_loss import Yolo_Loss_v1
+        loss_fn = Yolo_Loss_v1(classes = self._classes,
+                               num_boxes=self._boxes,
+                               ignore_thresh=ignore_thresh)
+        self._loss_fn = loss_fn
+        return loss_fn
 
     def match_optimizer_to_policy(self, optimizer, scaling = "dynamic"):
         if self._policy != "float32":

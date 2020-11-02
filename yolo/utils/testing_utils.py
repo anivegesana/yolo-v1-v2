@@ -54,8 +54,8 @@ def get_draw_fn(colors, label_names, display_name):
         return draw_box 
 
 def build_model(name="regular",
-                model_version="v3",
-                classes=80,
+                model_version="v1",
+                classes=20,
                 w=None,
                 h=None,
                 batch_size=None,
@@ -64,8 +64,14 @@ def build_model(name="regular",
                 policy="float32",
                 set_head=True, 
                 weights_file = None):
+    if model_version == "v1":
+        from yolo import Yolov1
+        model = Yolov1(classes=classes,
+                       model=name,
+                       input_shape=(batch_size, w, h, 3),
+                       policy=policy)
 
-    if model_version == "v3":
+    elif model_version == "v3":
         from yolo import Yolov3
         model = Yolov3(classes=classes,
                        model=name,

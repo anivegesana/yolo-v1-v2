@@ -17,7 +17,7 @@ import time
 from yolo.utils.testing_utils import prep_gpu, build_model, draw_box, int_scale_boxes, gen_colors, get_coco_names
 prep_gpu()
 
-from yolo.dataloaders.YoloParser import YoloParser
+#from yolo.dataloaders.YoloParser import YoloParser
 from yolo.utils.box_utils import _xcycwh_to_yxyx
 
 
@@ -31,15 +31,15 @@ def gt_test():
     import tensorflow_datasets as tfds
     strat = tf.distribute.MirroredStrategy()
     with strat.scope():
-        train, info = tfds.load('coco',
+        train, info = tfds.load('voc',
                             split='train',
                             shuffle_files=True,
                             with_info=True)
-        test, info = tfds.load('coco',
+        test, info = tfds.load('voc',
                             split='validation',
                             shuffle_files=False,
                             with_info=True)
-        model = build_model(model_version="v4", policy="mixed_float16")#, weights_file= "testing_weights/yolov3-regular.weights")
+        model = build_model(model_version="v1", policy="mixed_float16")#, weights_file= "testing_weights/yolov3-regular.weights")
         model.get_summary()
 
         loss_fn = model.generate_loss(loss_type="ciou")
