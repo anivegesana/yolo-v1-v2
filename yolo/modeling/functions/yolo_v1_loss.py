@@ -11,6 +11,7 @@ class Yolo_Loss_v1(ks.losses.Loss):
                  num_boxes=2,
                  num_classes=20,
                  size=7,
+                 img_size=448,
                  ignore_thresh=0.7,
                  reduction=tf.keras.losses.Reduction.NONE,
                  name=None,
@@ -24,6 +25,7 @@ class Yolo_Loss_v1(ks.losses.Loss):
             num_boxes: integer, number of prediction boxes per grid cell 
             num_classes: integer, number of class probabilities each box predicts
             size: integer, specifying that the input has size * size grid cells
+            img_size: integer, pixel height/width of the input image
             ignore_thresh: float indicating the confidence threshold of whether a box
                            contains an object within it.
         call Return: 
@@ -36,8 +38,9 @@ class Yolo_Loss_v1(ks.losses.Loss):
         self._noobj_scale = noobj_scale
         self._num_boxes = num_boxes
         self._num_classes = num_classes
-        self._ignore_thresh = ignore_thresh
         self._size = size
+        self._img_size = img_size
+        self._ignore_thresh = ignore_thresh
 
         # metrics
         self._localization_loss = 0.0
@@ -77,8 +80,8 @@ class Yolo_Loss_v1(ks.losses.Loss):
         width, height = shape[1], shape[2]
 
         pred_xy = pred_xy / [width, height]
-        pred_wh = pred_wh / [width, height]
-        pred_class = ks.activations.softmax(true_class, axis=-1)
+        pred_wh = pred_wh / [self._img_size, self._img_size]
+        pred_class = ks.activations.softmax(pred_class, axis=-1)
 
         # Determine IOU of all predictor boxes vs gt boxes in each cell
         iou = compute_iou(true_boxes_xywh, pred_boxes_xywh)
