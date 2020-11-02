@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow.keras.backend as K
-from yolo.dataloaders.parsers import Parser
+from yolo.dataloaders.parsers.Parser import Parser
 
 from yolo.dataloaders.ops.preprocessing_ops import _get_best_anchor
 from yolo.dataloaders.ops.preprocessing_ops import random_jitter_boxes
