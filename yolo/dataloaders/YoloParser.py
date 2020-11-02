@@ -27,7 +27,7 @@ class YoloParser(Parser):
                  random_flip = True, 
                  pct_rand=0.5,
                  anchors=None,
-                 seed = 10, ):
+                 seed = 10):
         self._net_down_scale = net_down_scale
         self._image_w = (image_w//self._net_down_scale) * self._net_down_scale 
         self._image_h = self.image_w if image_h == None else (image_h//self._net_down_scale) * self._net_down_scale
