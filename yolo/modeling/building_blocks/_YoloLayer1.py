@@ -63,10 +63,10 @@ class YoloLayerV1(ks.Model):
             for j in range(self._size)] 
             for i in range(self._size)], dtype=tf.float32)
 
-        offsets /= (self._size * self._img_size)
+        offsets /= (self._size) # normalizes between 0 and 1
 
         offsets = tf.broadcast_to(offsets, shape)
-        boxes = boxes + offsets
+        boxes = boxes + offsets # boxes are no longer relative to each grid cell
         boxes = tf.reshape(boxes, [-1, self._size * self._size * self._num_boxes, 4])
         
         return boxes
@@ -82,7 +82,7 @@ class YoloLayerV1(ks.Model):
             each bounding box prediction 
         """
 
-        # Seperate bounding box components from class probabilities
+        # Seperate bounding box components from class probabilities:
         class_start = self._num_boxes * 5
         boxes = inputs[..., :class_start]
         classes = inputs[..., class_start:]
@@ -94,13 +94,17 @@ class YoloLayerV1(ks.Model):
         confidence = boxes[..., 4]
         confidence = tf.reshape(confidence, [-1, self._num_boxes * self._size * self._size])
         
-        # Reparameterize
-        boxes_xywh = boxes[..., 0:4] / self._img_size
+        # Reparameterize:
+        # The width and height are normalized by the image dimensions
+        # The x, y coordinates are parameterized to be an offset from the grid cells
+        boxes_xywh = boxes[..., 0:4] / [self._size, self._size, self._img_size, self._img_size]
         boxes_yxyx = _xcycwh_to_yxyx(boxes_xywh)
         boxes_yxyx = self.parse_boxes(boxes_yxyx)
         boxes_yxyx = tf.expand_dims(boxes_yxyx, axis=2)
 
         classes = ks.activations.softmax(classes, axis=-1)
+
+        # Repeat since all the boxes in each cell are predicting the same class
         classes = tf.repeat(classes, repeats=[self._num_boxes], axis=1)
         
         return boxes_yxyx, classes, confidence
@@ -114,7 +118,7 @@ class YoloLayerV1(ks.Model):
 
         Return:
             dict: Dictionary with keys "bbox", "classes", "confidence", and "raw_output"
-            bbox: tensor with predictor box in each grid cell
+            bbox: tensor with the yxyx coordinates of each box (coordinates normalized between 0 and 1)
             classes: number, one-hot encoding of the predicted class
             confidence: predicted confidence of an object existing in the grid cell
             raw_output: size x size x (numBoxes * 5 + numClasses) tensor
@@ -158,7 +162,7 @@ if __name__ == "__main__":
     img_dims = 448
 
     input_size = size * size * (num_boxes * 5 + num_classes)
-    random_input = tf.random.uniform(shape=(1, input_size,), maxval=img_dims, dtype=tf.float32)
+    random_input = tf.random.uniform(shape=(1, input_size,), maxval=img_dims/2, dtype=tf.float32)
     tf.print("Random input:", random_input)
     tf.print(random_input.get_shape())
 
@@ -174,4 +178,7 @@ if __name__ == "__main__":
                              use_nms=True)
     
     output = yolo_layer(random_input)
-    print(output['classes'])
+    print(output['bbox'])
+    # print(output['classes'])
+    # print(output['confidence'])
+    # print(output['raw_output'])
