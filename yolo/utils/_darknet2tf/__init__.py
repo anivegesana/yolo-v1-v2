@@ -99,6 +99,8 @@ class DarkNetConverter(_DarkNetSectionList):
         tensors = _DarkNetSectionList()
         layers = _DarkNetSectionList()
         yolo_tensors = []
+        yolo_v1_cfg = None
+
         for i, cfg in enumerate(self.data):
             tensor = cfg.to_tf(tensors)
 
@@ -113,22 +115,50 @@ class DarkNetConverter(_DarkNetSectionList):
             ) + f" shape inconsistent\n\tExpected: {cfg.shape}\n\tGot: {tensor.shape[1:]}"
             if cfg._type == 'yolo':
                 yolo_tensors.append((i, cfg, tensor))
+            if cfg._type == 'detection':
+                yolo_v1_cfg = (i, cfg, tensor)
             tensors.append(tensor)
             layers.append(layer)
 
-        model = tf.keras.Model(inputs=tensors.net,
-                               outputs=self._process_yolo_layer(
-                                   yolo_tensors,
-                                   thresh=thresh,
-                                   class_thresh=class_thresh,
-                                   max_boxes=max_boxes,
-                                   use_mixed=use_mixed))
+        if yolo_v1_cfg is not None:
+            model = tf.keras.Model(inputs=tensors.net,
+                                outputs=self._process_yolo_v1_layer(
+                                       yolo_v1_cfg,
+                                       thresh=thresh,
+                                       class_thresh=class_thresh,
+                                       ))
+        else:
+            model = tf.keras.Model(inputs=tensors.net,
+                                outputs=self._process_yolo_layer(
+                                    yolo_tensors,
+                                    thresh=thresh,
+                                    class_thresh=class_thresh,
+                                    max_boxes=max_boxes,
+                                    use_mixed=use_mixed))
         model.build(self.net.shape)
 
         for cfg, layer in zip(self, layers):
             if layer is not None:
                 layer.set_weights(cfg.get_weights())
         return model
+    def _process_yolo_v1_layer(self,
+                               cfg, 
+                               thresh=0.45, 
+                               class_thresh=0.45):
+        import tensorflow as tf
+        from yolo.modeling.building_blocks import YoloV1Layer
+        
+        _, cfg, tensor = cfg
+        print(tensor.get_shape())
+    
+        yolo_layer = YoloV1Layer(num_boxes=3,
+                 num_classes=cfg.num,
+                 size=cfg.side,
+                 img_size=448,
+                 thresh=thresh,
+                 cls_thresh=class_thresh)
+
+        return yolo_layer(tensor)
 
     def _process_yolo_layer(self,
                             yolo_tensors,

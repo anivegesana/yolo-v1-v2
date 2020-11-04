@@ -10,3 +10,4 @@ from ._Identity import Identity
 from ._CSPConnect import CSPConnect
 from ._CSPDownSample import CSPDownSample
 from ._YoloLayer import YoloLayer
+from._YoloV1Layer import YoloV1Layer

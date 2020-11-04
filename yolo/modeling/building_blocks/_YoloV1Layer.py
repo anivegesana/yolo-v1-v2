@@ -4,23 +4,19 @@ import tensorflow.keras as ks
 from yolo.utils.box_utils import _xcycwh_to_yxyx
 
 @ks.utils.register_keras_serializable(package='yolo_v1')
-class YoloLayerV1(ks.Model):
+class YoloV1Layer(ks.Model):
     def __init__(self, 
-                 coord_scale,
-                 noobj_scale,
                  num_boxes,
                  num_classes,
                  size,
                  img_size,
                  thresh,
                  cls_thresh,
-                 use_nms,
+                 use_nms=True,
                  **kwargs):
         """
         Detection layer for YOLO v1
         Args: 
-            coord_scale: float indicating the weight on the localization loss
-            noobj_scale: float indicating the weight on the confidence loss
             num_boxes: integer, number of prediction boxes per grid cell 
             num_classes: integer, number of class probabilities each box predicts
             size: integer, specifying that the input has size * size grid cells
@@ -32,8 +28,6 @@ class YoloLayerV1(ks.Model):
             dict: with keys "bbox", "classes", "confidence", and "raw_output" 
         """
         super().__init__(**kwargs)
-        self._coord_scale = coord_scale
-        self._noobj_scale = noobj_scale
         self._num_boxes = num_boxes
         self._num_classes = num_classes
         self._size = size
@@ -114,7 +108,7 @@ class YoloLayerV1(ks.Model):
         """
         Parses a prediction tensor into its box, class, and confidence components
         Args:
-            inputs: output from the detection head of rank-1
+            inputs: output from the detection head (7x7x35)
 
         Return:
             dict: Dictionary with keys "bbox", "classes", "confidence", and "raw_output"
@@ -123,11 +117,6 @@ class YoloLayerV1(ks.Model):
             confidence: predicted confidence of an object existing in the grid cell
             raw_output: size x size x (numBoxes * 5 + numClasses) tensor
         """
-        # Reshape the input to [size, size, boxes * 5 + classes]
-        desired_shape = [-1, self._size, 
-                         self._size, 
-                         self._num_boxes * 5 + self._num_classes]
-        inputs = tf.reshape(inputs, desired_shape)
         boxes, classes, confidence = self.parse_prediction(inputs)
 
         if self._use_nms:
@@ -162,14 +151,12 @@ if __name__ == "__main__":
     img_dims = 448
 
     input_size = size * size * (num_boxes * 5 + num_classes)
-    random_input = tf.random.uniform(shape=(1, input_size,), maxval=img_dims/2, dtype=tf.float32)
+    random_input = tf.random.uniform(shape=(1, size, size, num_boxes * 5 + num_classes), maxval=img_dims/2, dtype=tf.float32)
     tf.print("Random input:", random_input)
     tf.print(random_input.get_shape())
 
     print("Testing yolo layer:")
-    yolo_layer = YoloLayerV1(coord_scale=5.0,
-                             noobj_scale=0.5,
-                             num_boxes=num_boxes,
+    yolo_layer = YoloV1Layer(num_boxes=num_boxes,
                              num_classes=num_classes,
                              size=size,
                              img_size=img_dims,
