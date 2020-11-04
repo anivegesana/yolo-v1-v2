@@ -69,7 +69,7 @@ class Yolo(tf.keras.Model, ABC):
         loss_class = 0.0
         metric_dict = dict()
 
-        _loss, _loss_box, _loss_conf, _loss_class, _avg_iou, _recall50 = self._loss_fn(label, y_pred[key])
+        _loss, _loss_box, _loss_conf, _loss_class, _avg_iou, _recall50 = self._loss_fn(label, y_pred)
         loss += _loss
         loss_box += _loss_box
         loss_conf += _loss_conf
@@ -143,7 +143,7 @@ class Yolo(tf.keras.Model, ABC):
                    provided in __init__
         """
         from yolo.modeling.functions.yolo_v1_loss import Yolo_Loss_v1
-        loss_fn = Yolo_Loss_v1(classes = self._classes,
+        loss_fn = Yolo_Loss_v1(num_classes = self._classes,
                                num_boxes=self._boxes,
                                ignore_thresh=ignore_thresh)
         self._loss_fn = loss_fn

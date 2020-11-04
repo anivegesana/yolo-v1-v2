@@ -65,20 +65,20 @@ def build_model(name="regular",
                 set_head=True, 
                 weights_file = None):
     if model_version == "v1":
-        from yolo import Yolov1
+        from yolo.modeling.Yolov1 import Yolov1
         model = Yolov1(classes=classes,
                        model=name,
                        input_shape=(batch_size, w, h, 3),
                        policy=policy)
 
     elif model_version == "v3":
-        from yolo import Yolov3
+        from yolo.modeling import Yolov3
         model = Yolov3(classes=classes,
                        model=name,
                        input_shape=(batch_size, w, h, 3),
                        policy=policy)
     else:
-        from yolo import Yolov4
+        from yolo.modeling import Yolov4
         model = Yolov4(classes=classes,
                        model="regular",
                        input_shape=(batch_size, w, h, 3),

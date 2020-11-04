@@ -92,11 +92,12 @@ class Yolov1Head(tf.keras.Model):
                                                  activation=act)(x)
             elif layer.name == "Dropout":
                 x = ks.layers.Dropout(rate=layer.filters)(x)
+            elif layer.name == "Flatten":
+                x = ks.layers.Flatten()(x)
             elif layer.name == "Connected":
                 x = ks.layers.Dense(units=layer.filters,
                                     activation=layer.activation)(x)
-        #print(self._S, self._S, self._output_depth)
-        return x #ks.layers.Reshape((self._S, self._S, self._output_depth))(x)
+        return x
 
 class HeadBlockConfig(object):
     def __init__(self, layer, filters, kernel_size,

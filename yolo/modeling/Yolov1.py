@@ -128,6 +128,6 @@ class Yolov1(base_model.Yolo):
         pass
 
 if __name__ == "__main__":
-    y = Yolov1(model = "yolov1", input_shape=[1, 448, 448, 3])
-    y.build(input_shape=[1, 448, 448, 3])
+    y = Yolov1(model = "yolov1", input_shape=(1, 448, 448, 3))
+    y.build(input_shape=(1, 448, 448, 3))
     y.summary()

@@ -49,7 +49,7 @@ class YoloParser(Parser):
         boxes = _yxyx_to_xcycwh(data["objects"]["bbox"])
         if self._jitter_boxes != 0.0:
             boxes = random_jitter_boxes(boxes, self._jitter_boxes, seed = self._seed)
-        best_anchors = _get_best_anchor(boxes, self._anchors, self._image_w, self._image_h)
+        #best_anchors = _get_best_anchor(boxes, self._anchors, self._image_w, self._image_h)
 
         image = data["image"]/255
         image = tf.image.resize(image, (self._max_process_size, self._max_process_size))
@@ -65,7 +65,7 @@ class YoloParser(Parser):
             
         boxes = pad_max_instances(boxes, self._max_num_instances, 0)
         classes = pad_max_instances(data["objects"]["label"], self._max_num_instances, -1)
-        best_anchors = pad_max_instances(best_anchors, self._max_num_instances, 0)
+        #best_anchors = pad_max_instances(best_anchors, self._max_num_instances, 0)
         area = pad_max_instances(data["objects"]["area"], self._max_num_instances, 0)
         is_crowd = pad_max_instances(tf.cast(data["objects"]["is_crowd"], tf.int32), self._max_num_instances, 0)
         return image, {"source_id": data["image/id"],
@@ -73,7 +73,7 @@ class YoloParser(Parser):
                         "classes": classes,
                         "area": area,
                         "is_crowd": is_crowd,
-                        "best_anchors": best_anchors, 
+                        #"best_anchors": best_anchors, 
                         "width": shape[1],
                         "height": shape[2],
                         "num_detections": tf.shape(data["objects"]["label"])[0]
@@ -83,10 +83,10 @@ class YoloParser(Parser):
         shape = tf.shape(data["image"])
         image = _scale_image(data["image"], resize=True, w = self._image_w, h = self._image_h)
         boxes = _yxyx_to_xcycwh(data["objects"]["bbox"])
-        best_anchors = _get_best_anchor(boxes, self._anchors, self._image_w, self._image_h)
+        #best_anchors = _get_best_anchor(boxes, self._anchors, self._image_w, self._image_h)
         boxes = pad_max_instances(boxes, self._max_num_instances, 0)
         classes = pad_max_instances(data["objects"]["label"], self._max_num_instances, 0)
-        best_anchors = pad_max_instances(best_anchors, self._max_num_instances, 0)
+        #best_anchors = pad_max_instances(best_anchors, self._max_num_instances, 0)
         area = pad_max_instances(data["objects"]["area"], self._max_num_instances, 0)
         is_crowd = pad_max_instances(tf.cast(data["objects"]["is_crowd"], tf.int32), self._max_num_instances, 0)
         return image, {"source_id": data["image/id"],
@@ -94,7 +94,7 @@ class YoloParser(Parser):
                         "classes": classes,
                         #"area": area,
                         #"is_crowd": is_crowd,
-                        "best_anchors": best_anchors, 
+                        #"best_anchors": best_anchors, 
                         #"width": shape[1],
                         #"height": shape[2],
                         "num_detections": tf.shape(data["objects"]["label"])[0]
