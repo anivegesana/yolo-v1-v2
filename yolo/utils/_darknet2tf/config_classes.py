@@ -248,15 +248,28 @@ class localCfg(Config):
         return (w, h, self.filters)
 
     def load_weights(self, files):
+        import tensorflow as tf
         w = len_width(self.w, self.size, self.pad, self.stride)
         h = len_width(self.h, self.size, self.pad, self.stride)
-        self.biases = read_n_floats(w * h * self.filters, files)
 
+        biases = read_n_floats(w * h * self.filters, files)
         bytes_read = self.filters * w * h
-
         weights = read_n_floats(self.nweights, files)
-        self.weights = weights.reshape(self.h * self.w, self.filters, self.c, self.size,
+
+        # self.weights = weights.reshape(self.h * self.w, self.filters, self.c, self.size,
+        #                                self.size).transpose([0, 3, 4, 2, 1])
+        # tf.print("SHAPE: ", self.weights.shape)
+
+        weights = weights.reshape(self.h * self.w, self.filters, self.c, self.size,
                                        self.size).transpose([0, 3, 4, 2, 1])
+
+        self.weights = weights.reshape(weights.shape[0], 
+                                       weights.shape[1] * weights.shape[2] * weights.shape[3], 
+                                       weights.shape[4])
+        self.biases =  biases.reshape(w, h, self.filters)
+
+        tf.print("SHAPE: ", self.weights.shape)
+
         bytes_read += self.nweights
         return bytes_read * 4
 
