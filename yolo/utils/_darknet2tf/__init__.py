@@ -139,6 +139,7 @@ class DarkNetConverter(_DarkNetSectionList):
 
         for cfg, layer in zip(self, layers):
             if layer is not None:
+                print(layer)
                 layer.set_weights(cfg.get_weights())
         return model
     def _process_yolo_v1_layer(self,
@@ -149,7 +150,6 @@ class DarkNetConverter(_DarkNetSectionList):
         from yolo.modeling.building_blocks import YoloV1Layer
         
         _, cfg, tensor = cfg
-        print(tensor.get_shape())
     
         yolo_layer = YoloV1Layer(num_boxes=3,
                  num_classes=cfg.num,

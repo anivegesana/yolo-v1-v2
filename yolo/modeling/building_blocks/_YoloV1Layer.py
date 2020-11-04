@@ -2,8 +2,9 @@ import tensorflow as tf
 import tensorflow.keras as ks
 
 from yolo.utils.box_utils import _xcycwh_to_yxyx
+from yolo.utils.loss_utils import _build_grid_points
 
-@ks.utils.register_keras_serializable(package='yolo_v1')
+# @ks.utils.register_keras_serializable(package='yolo_v1')
 class YoloV1Layer(ks.Model):
     def __init__(self, 
                  num_boxes,
@@ -41,29 +42,19 @@ class YoloV1Layer(ks.Model):
     
     def parse_boxes(self, boxes):
         """
-        Parameterizes yxyx boxes coordinates by absolute location within [0, 1]
+        Parameterizes xywh boxes coordinates by absolute location within [0, 1]
         Args:
             boxes: tensor of shape [batches, size, size, num_boxes, 4]
         Returns:
             Tensor: shape [batches, size * size * num_boxes, 4]
         """
-        shape = boxes.get_shape()
-        num_boxes = shape[3]
+        grid_points = _build_grid_points(self._size, self._size, self._num_boxes, dtype=tf.float32)
 
-        # Create offsets to add to the box dimensions note that boxes
-        # has shape[1] = height, shape[2] = width 
-        offsets = tf.convert_to_tensor(
-            [[[[i, j, i, j]] * num_boxes 
-            for j in range(self._size)] 
-            for i in range(self._size)], dtype=tf.float32)
-
-        offsets /= (self._size) # normalizes between 0 and 1
-
-        offsets = tf.broadcast_to(offsets, shape)
-        boxes = boxes + offsets # boxes are no longer relative to each grid cell
-        boxes = tf.reshape(boxes, [-1, self._size * self._size * self._num_boxes, 4])
-        
-        return boxes
+        boxes_xy = boxes[...,0:2]
+        boxes_wh = boxes[...,2:4]
+        box_xy = boxes_xy + grid_points
+        boxes = tf.concat([boxes_xy, boxes_wh], axis=-1)
+        return tf.reshape(boxes, [-1, self._size * self._size * self._num_boxes, 4])
 
     def parse_prediction(self, inputs):
         """
@@ -92,8 +83,9 @@ class YoloV1Layer(ks.Model):
         # The width and height are normalized by the image dimensions
         # The x, y coordinates are parameterized to be an offset from the grid cells
         boxes_xywh = boxes[..., 0:4] / [self._size, self._size, self._img_size, self._img_size]
+        boxes_xywh = self.parse_boxes(boxes_xywh)
+
         boxes_yxyx = _xcycwh_to_yxyx(boxes_xywh)
-        boxes_yxyx = self.parse_boxes(boxes_yxyx)
         boxes_yxyx = tf.expand_dims(boxes_yxyx, axis=2)
 
         classes = ks.activations.softmax(classes, axis=-1)
@@ -151,9 +143,7 @@ if __name__ == "__main__":
     img_dims = 448
 
     input_size = size * size * (num_boxes * 5 + num_classes)
-    random_input = tf.random.uniform(shape=(1, size, size, num_boxes * 5 + num_classes), maxval=img_dims/2, dtype=tf.float32)
-    tf.print("Random input:", random_input)
-    tf.print(random_input.get_shape())
+    random_input = tf.random.uniform(shape=(2, size, size, num_boxes * 5 + num_classes), maxval=img_dims/2, dtype=tf.float32)
 
     print("Testing yolo layer:")
     yolo_layer = YoloV1Layer(num_boxes=num_boxes,
