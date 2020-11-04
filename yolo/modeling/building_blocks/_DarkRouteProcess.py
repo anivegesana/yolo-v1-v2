@@ -15,6 +15,7 @@ class DarkRouteProcess(ks.layers.Layer):
             kernel_initializer='glorot_uniform',
             bias_initializer='zeros',
             bias_regularizer=None,
+            use_bn=True,
             use_sync_bn=False,
             kernel_regularizer=None,  # default find where is it is stated
             norm_momentum=0.99,
@@ -56,6 +57,7 @@ class DarkRouteProcess(ks.layers.Layer):
 
         # darkconv params
         self._filters = filters // mod
+        self._use_bn = use_bn
         self._use_sync_bn = use_sync_bn
         self._kernel_initializer = kernel_initializer
         self._bias_initializer = bias_initializer
@@ -101,7 +103,7 @@ class DarkRouteProcess(ks.layers.Layer):
                         kernel_size=(3, 3),
                         strides=(1, 1),
                         padding="same",
-                        use_bn=True,
+                        use_bn=self._use_bn,
                         use_sync_bn=self._use_sync_bn,
                         kernel_initializer=self._kernel_initializer,
                         bias_initializer=self._bias_initializer,
@@ -116,7 +118,7 @@ class DarkRouteProcess(ks.layers.Layer):
                       kernel_size=(1, 1),
                       strides=(1, 1),
                       padding="same",
-                      use_bn=True,
+                      use_bn=self._use_bn,
                       use_sync_bn=self._use_sync_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,
@@ -130,7 +132,7 @@ class DarkRouteProcess(ks.layers.Layer):
                       kernel_size=(3, 3),
                       strides=(1, 1),
                       padding="same",
-                      use_bn=True,
+                      use_bn=self._use_bn,
                       use_sync_bn=self._use_sync_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,
@@ -147,7 +149,7 @@ class DarkRouteProcess(ks.layers.Layer):
                       kernel_size=(1, 1),
                       strides=(1, 1),
                       padding="same",
-                      use_bn=True,
+                      use_bn=self._use_bn,
                       use_sync_bn=self._use_sync_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,

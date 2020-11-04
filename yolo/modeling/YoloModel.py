@@ -4,6 +4,7 @@ from typing import *
 
 from yolo.modeling.backbones.Darknet import Darknet
 from yolo.modeling.model_heads.YoloDecoder import YoloDecoder
+from yolo.modeling.model_heads._Yolov1Head import Yolov1Head
 from yolo.modeling.building_blocks import YoloLayer
 
 from yolo.utils import DarkNetConverter
@@ -50,6 +51,11 @@ class Yolo(ks.Model):
                 model_id = "cspdarknettiny"
             else:
                 model_id = "cspdarknet53"
+
+        elif model_version == "v1":
+            if model_type == "regular":
+                model_id = "yolov1backbone"
+
         else:
             if model_type == "tiny":
                 model_id = "darknettiny"
@@ -66,6 +72,10 @@ class Yolo(ks.Model):
                                      embed_fpn=False,
                                      max_level_process_len=2,
                                      path_process_len=1)
+
+        elif model_version == "v1" and model_type == "regular":
+            self._head = Yolov1Head()
+
         elif model_version == "v4":
             self._head = YoloDecoder(classes=80,
                                      boxes_per_level=3,
@@ -93,6 +103,7 @@ class Yolo(ks.Model):
         self._backbone.build(input_shape)
         nshape = self._backbone.output_shape
         self._head.build(nshape)
+        """
         masks, path_scales, x_y_scales = self._head.get_loss_attributes()
 
         self._decoder = YoloLayer(masks=masks,
@@ -103,6 +114,7 @@ class Yolo(ks.Model):
                                   path_scale=path_scales,
                                   scale_xy=x_y_scales,
                                   use_nms=self._use_nms)
+        """
 
         super().build(input_shape)
         return
@@ -114,8 +126,8 @@ class Yolo(ks.Model):
         if training:
             return {"raw_output": raw_predictions}
         else:
-            predictions = self._decoder(raw_predictions)
-            predictions.update({"raw_output": raw_predictions})
+            predictions = raw_predictions#predictions = self._decoder(raw_predictions)
+            #predictions.update({"raw_output": raw_predictions})
             return predictions
 
     @property
@@ -165,6 +177,11 @@ class Yolo(ks.Model):
                     config_file = download('yolov3-tiny.cfg')
                 if weights_file == None:
                     weights_file = download('yolov3-tiny.weights')
+            elif self.backbone.name == "yolov1backbone":
+                if config_file is None:
+                    config_file = download('yolov1.cfg')
+                if weights_file is None:
+                    weights_file = download('yolov1.weights')
             list_encdec = DarkNetConverter.read(config_file, weights_file)
             splits = self.backbone.splits
 
@@ -193,7 +210,14 @@ class Yolo(ks.Model):
 
 
 if __name__ == "__main__":
+    """
     model = Yolo(model_version="v3", model_type="regular")
     model.build([None, None, None, 3])
     model.load_weights_from_dn()
+    model.summary()
+    """
+
+    model = Yolo(model_version="v1", model_type="regular")
+    model.build([(1, 448, 448, 3)])
+    model.load_weights_from_dn(config_file='../../yolov1.cfg', weights_file='../../yolov1.weights')
     model.summary()

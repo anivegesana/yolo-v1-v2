@@ -94,18 +94,11 @@ class DarkConv(ks.layers.Layer):
         return
 
     def build(self, input_shape):
-        kernel_size = self._kernel_size if isinstance(
-            self._kernel_size, int) else self._kernel_size[0]
-        strides = self._strides if isinstance(self._strides,
-                                              int) else self._strides[0]
+        kernel_size = self._kernel_size if type(
+            self._kernel_size) == int else self._kernel_size[0]
         if self._padding == "same" and kernel_size != 1:
-            # self._zeropad = ks.layers.ZeroPadding2D(
-            #     ((1, 1), (1, 1)))  # symetric padding 2x2 padding
-
-            # think tell him to tyr it
             padding = kernel_size - 1
-            self._zeropad = ks.layers.ZeroPadding2D(
-                ((padding // 2, padding // 2), (padding // 2, padding // 2)))
+            self._zeropad = ks.layers.ZeroPadding2D(((padding // 2, padding // 2), (padding // 2, padding // 2)))
         else:
             self._zeropad = Identity()
 

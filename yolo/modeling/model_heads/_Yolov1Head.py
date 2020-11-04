@@ -41,10 +41,10 @@ class Yolov1Head(tf.keras.Model):
         else:
             self._model_name = "custom_head"
 
-        self._input_shape = input_shape
+        self._input_shape = (14, 14, 1024)#input_shape
         self._output_depth = (boxes * 5) + classes
 
-        inputs = ks.layers.Input(shape=self._input_shape[None][1:])
+        inputs = ks.layers.Input(shape=self._input_shape)
         outputs = self._connect_layers(self._config, inputs)
         super().__init__(inputs=inputs,
                          outputs=outputs,

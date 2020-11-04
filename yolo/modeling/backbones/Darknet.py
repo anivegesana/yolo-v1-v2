@@ -82,7 +82,8 @@ class layer_factory(object):
         self._layer_dict = {
             "DarkTiny": (nn_blocks.DarkTiny, self.darktiny_config_todict),
             "DarkConv": (nn_blocks.DarkConv, self.darkconv_config_todict),
-            "MaxPool": (tf.keras.layers.MaxPool2D, self.maxpool_config_todict)
+            "MaxPool": (tf.keras.layers.MaxPool2D, self.maxpool_config_todict),
+            "DarkRouteProcess": (nn_blocks.DarkRouteProcess, self.darkrouteprocess_config_todict)
         }
 
     def darkconv_config_todict(self, config, kwargs):
@@ -108,6 +109,11 @@ class layer_factory(object):
             "name": kwargs["name"]
         }
 
+    def darkrouteprocess_config_todict(self, config, kwargs):
+        dictvals = {"filters": config.filters}
+        dictvals.update(kwargs)
+        return dictvals
+
     def __call__(self, config, kwargs):
         layer, get_param_dict = self._layer_dict[config.layer]
         param_dict = get_param_dict(config, kwargs)
@@ -117,7 +123,7 @@ class layer_factory(object):
 # model configs
 LISTNAMES = [
     "default_layer_name", "level_type", "number_of_layers_in_level",
-    "bottleneck", "filters", "kernal_size", "pool_size", "strides", "padding",
+    "bottleneck", "filters", "pool_size", "kernal_size", "strides", "padding",
     "default_activation", "route", "level/name", "is_output"
 ]
 
@@ -262,11 +268,44 @@ DARKNETTINY = {
     ]
 }
 
+"""
+LISTNAMES = [
+    "default_layer_name", "level_type", "number_of_layers_in_level",
+    "bottleneck", "filters", "pool_size", "kernel_size", "strides", "padding",
+    "default_activation", "route", "level/name", "is_output"
+]
+"""
+
+YOLOV1BACKBONE = {
+    "list_names": LISTNAMES,
+    "splits": {
+        "backbone_split": 20
+    },
+    "backbone": [
+        ["DarkConv", None, 1, False, 64, None, 7, 2, "same", "leaky", -1, 0, False],
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 1, False],
+
+        ["DarkConv", None, 1, False, 192, None, 3, 1, "same", "leaky", -1, 2, False],
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 3, False],
+
+        ["DarkRouteProcess", "darkroute_process", 1, False, 256, None, None, None, None, None, -1, 4, False],
+        ["DarkRouteProcess", "darkroute_process", 1, False, 512, None, None, None, None, None, -1, 5, False],
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 6, False],
+
+        ["DarkRouteProcess", "darkroute_process", 4, False, 512, None, None, None, None, None, -1, 7, False],
+        ["DarkRouteProcess", "darkroute_process", 1, False, 1024, None, None, None, None, None, -1, 8, False],
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 9, False],
+
+        ["DarkRouteProcess", "darkroute_process", 2, False, 1024, None, None, None, None, None, -1, 9, True],
+    ]
+}
+
 BACKBONES = {
     "darknettiny": DARKNETTINY,
     "darknet53": DARKNET53,
     "cspdarknet53": CSPDARKNET53,
-    "cspdarknettiny": CSPDARKNETTINY
+    "cspdarknettiny": CSPDARKNETTINY,
+    "yolov1backbone": YOLOV1BACKBONE,
 }
 
 
@@ -368,6 +407,10 @@ class Darknet(ks.Model):
                                              config,
                                              name=f"{config.layer}_{i}")
                 stack_outputs.append(x_pass)
+            elif config.stack == "darkroute_process":
+                x = self._build_darkrouteprocess(stack_outputs[config.route],
+                                      config,
+                                      name=f"{config.layer}_{i}")
             if (config.is_output and self._min_size == None):
                 endpoints[str(config.output_name)] = x
             elif self._min_size != None and config.output_name >= self._min_size and config.output_name <= self._max_size:
@@ -435,6 +478,20 @@ class Darknet(ks.Model):
             self._default_dict["name"] = f"{name}_{i}"
             x = nn_blocks.DarkResidual(filters=config.filters,
                                        **self._default_dict)(x)
+        self._default_dict["activation"] = self._activation
+        self._default_dict["name"] = None
+        return x
+
+    def _build_darkrouteprocess(self, inputs, config, name):
+        x = inputs
+        i = 0
+        self._default_dict["activation"] = self._get_activation(
+            config.activation)
+        while i < config.repetitions:
+            self._default_dict["name"] = f"{name}_{i}"
+            layer = self._registry(config, self._default_dict)
+            _, x = layer(x)
+            i += 1
         self._default_dict["activation"] = self._activation
         self._default_dict["name"] = None
         return x

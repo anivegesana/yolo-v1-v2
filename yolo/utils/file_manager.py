@@ -75,6 +75,10 @@ def open_if_not_open(file: Union[PathABC, io.IOBase], *args,
 
 # URL names that can be accessed using the download function
 urls = {
+    'yolov1.cfg':
+    ('https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov1.cfg',
+     'cfg',
+     None),
     'yolov2.cfg':
     ('https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov2.cfg',
      'cfg',
@@ -99,6 +103,9 @@ urls = {
     ('https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-tiny.cfg',
      'cfg',
      '6cbf5ece15235f66112e0bedebb324f37199b31aee385b7e18f0bbfb536b258e'),
+    'yolov1.weights':
+    ('http://pjreddie.com/media/files/yolov1/yolov1.weights', 'weights',
+     None),
     'yolov2.weights':
     ('https://pjreddie.com/media/files/yolov2.weights', 'weights',
      'd9945162ed6f54ce1a901e3ec537bdba4d572ecae7873087bd730e5a7942df3f'),

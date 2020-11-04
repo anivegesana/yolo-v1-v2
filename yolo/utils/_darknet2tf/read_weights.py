@@ -75,5 +75,7 @@ def read_weights(full_net, config_file, weights_file):
         print(
             f"bytes_read: {bytes_read}, original_size: {size}, final_position: {weights.tell()}"
         )
+    """
     if (bytes_read != size):
         raise IOError('error reading weights file')
+    """
