@@ -4,7 +4,7 @@ import tensorflow.keras as ks
 from yolo.utils.box_utils import _xcycwh_to_yxyx
 from yolo.utils.loss_utils import _build_grid_points
 
-# @ks.utils.register_keras_serializable(package='yolo_v1')
+@ks.utils.register_keras_serializable(package='yolo_v1')
 class YoloV1Layer(ks.Model):
     def __init__(self, 
                  num_boxes,
