@@ -4,7 +4,7 @@ import tensorflow.keras as ks
 from yolo.utils.box_utils import _xcycwh_to_yxyx
 from yolo.utils.loss_utils import _build_grid_points
 
-@ks.utils.register_keras_serializable(package='yolo_v1')
+#@ks.utils.register_keras_serializable(package='yolo_v1')
 class YoloV1Layer(ks.Model):
     def __init__(self, 
                  num_boxes,
@@ -73,15 +73,16 @@ class YoloV1Layer(ks.Model):
         classes = inputs[..., class_start:]
 
         # Get components from boxes:
-        classes = tf.reshape(classes, [-1, self._size * self._size, self._num_classes])
         boxes = tf.reshape(boxes, [-1, self._size, self._size, self._num_boxes, 5])
-
+        
         confidence = boxes[..., 4]
         confidence = tf.reshape(confidence, [-1, self._num_boxes * self._size * self._size])
+        confidence = tf.repeat(confidence, repeats=self._num_boxes, axis=1)
         
         # Reparameterize:
         # The width and height are normalized by the image dimensions
         # The x, y coordinates are parameterized to be an offset from the grid cells
+
         boxes_xywh = boxes[..., 0:4] / [self._size, self._size, self._img_size, self._img_size]
         boxes_xywh = self.parse_boxes(boxes_xywh)
 
@@ -91,7 +92,8 @@ class YoloV1Layer(ks.Model):
         classes = ks.activations.softmax(classes, axis=-1)
 
         # Repeat since all the boxes in each cell are predicting the same class
-        classes = tf.repeat(classes, repeats=[self._num_boxes], axis=1)
+        classes = tf.reshape(classes, [-1, self._size * self._size, self._num_classes])
+        classes = tf.repeat(classes, repeats=self._num_boxes, axis=1)
         
         return boxes_yxyx, classes, confidence
 
@@ -115,6 +117,7 @@ class YoloV1Layer(ks.Model):
             boxes = tf.cast(boxes, tf.float32)
             classes = tf.cast(classes, tf.float32)
 
+            # boxes and classes are already in correct shape
             nms = tf.image.combined_non_max_suppression(
                 boxes, classes, self._max_boxes,
                 self._max_boxes, self._thresh, self._cls_thresh)
@@ -155,7 +158,6 @@ if __name__ == "__main__":
                              use_nms=True)
     
     output = yolo_layer(random_input)
-    print(output['bbox'])
     # print(output['classes'])
     # print(output['confidence'])
     # print(output['raw_output'])

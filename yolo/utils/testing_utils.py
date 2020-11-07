@@ -65,7 +65,20 @@ def build_model(name="regular",
                 set_head=True, 
                 weights_file = None):
 
-    if model_version == "v3":
+    if model_version == 'v1':
+        # TODO: update this when YOLOv1 model gets merged
+        config_path = "yolo/utils/_darknet2tf/test_locally_connected_config.cfg"
+        weights_path = "D:/yolov1.weights"
+
+        from yolo.utils import DarkNetConverter
+        converter = DarkNetConverter()
+        x = converter.read(config_file=config_path, weights_file=weights_path)
+        print("Weights loaded successfully")
+        model = x.to_tf()
+        print("Layers converted to TF successfully")
+        return model
+
+    elif model_version == "v3":
         from yolo import Yolov3
         model = Yolov3(classes=classes,
                        model=name,
@@ -126,6 +139,13 @@ def gen_colors(max_classes):
 
 
 def get_coco_names(path="yolo/dataloaders/dataset_specs/coco.names"):
+    with open(path, "r") as f:
+        data = f.readlines()
+    for i in range(len(data)):
+        data[i] = data[i].strip()
+    return data
+
+def get_voc_names(path="yolo/dataloaders/dataset_specs/voc.names"):
     with open(path, "r") as f:
         data = f.readlines()
     for i in range(len(data)):

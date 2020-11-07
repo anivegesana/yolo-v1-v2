@@ -13,6 +13,9 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from typing import Tuple, Sequence, List
+import tensorflow as tf
+
+
 
 
 class Config(ABC):
@@ -267,8 +270,6 @@ class localCfg(Config):
                                        weights.shape[1] * weights.shape[2] * weights.shape[3], 
                                        weights.shape[4])
         self.biases =  biases.reshape(w, h, self.filters)
-
-        tf.print("SHAPE: ", self.weights.shape)
 
         bytes_read += self.nweights
         return bytes_read * 4
@@ -704,12 +705,27 @@ def get_primitive_tf_layer_name(var, piece=3):
 
 # Testing locally connected config:
 if __name__ == "__main__":
+    import os
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+
+    from yolo.utils import DarkNetConverter
+
     config_path = "yolo/utils/_darknet2tf/test_locally_connected_config.cfg"
     weights_path = "D:/yolov1.weights"
 
-    from yolo.utils import DarkNetConverter
     converter = DarkNetConverter()
     x = converter.read(config_file=config_path, weights_file=weights_path)
     print("Weights loaded successfully")
-    x = x.to_tf()
+    model = x.to_tf()
     print("Layers converted to TF successfully")
+    
+    image = tf.random.uniform(shape=[1, 448, 448, 3], 
+                              minval=0, 
+                              maxval=1, 
+                              dtype=tf.float32, 
+                              seed=None, name="test_img")
+    
+    print(image.get_shape())
+    
+    result = model(image)
+    print(result)

@@ -256,7 +256,7 @@ class Yolov3(base_model.Yolo):
         if dn2tf_backbone:
             load_weights_dnBackbone(self._backbone,
                                     encoder,
-                                    mtype=self._backbone_name)
+                                    mtype="darknet53") # self._backbone_name
 
         if dn2tf_head:
             load_weights_dnHead(self._head, decoder)
