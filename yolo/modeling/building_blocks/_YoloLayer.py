@@ -21,7 +21,7 @@ class YoloLayer(ks.Model):
                  max_boxes,
                  path_scale=None,
                  scale_xy = None,
-                 use_nms = True,
+                 use_nms = False,
                  **kwargs):
         super().__init__(**kwargs)
         self._masks = masks

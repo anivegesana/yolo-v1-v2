@@ -259,10 +259,6 @@ class localCfg(Config):
         bytes_read = self.filters * w * h
         weights = read_n_floats(self.nweights, files)
 
-        # self.weights = weights.reshape(self.h * self.w, self.filters, self.c, self.size,
-        #                                self.size).transpose([0, 3, 4, 2, 1])
-        # tf.print("SHAPE: ", self.weights.shape)
-
         weights = weights.reshape(self.h * self.w, self.filters, self.c, self.size,
                                        self.size).transpose([0, 3, 4, 2, 1])
 

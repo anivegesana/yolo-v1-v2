@@ -52,9 +52,10 @@ class YoloV1Layer(ks.Model):
 
         boxes_xy = boxes[...,0:2]
         boxes_wh = boxes[...,2:4]
-        box_xy = boxes_xy + grid_points
+
+        boxes_xy =tf.stack([boxes_xy[..., 0]/self._size, boxes_xy[..., 1]/self._size], axis=-1) + grid_points
         boxes = tf.concat([boxes_xy, boxes_wh], axis=-1)
-        return tf.reshape(boxes, [-1, self._size * self._size * self._num_boxes, 4])
+        return boxes
 
     def parse_prediction(self, inputs):
         """
@@ -69,33 +70,31 @@ class YoloV1Layer(ks.Model):
 
         # Seperate bounding box components from class probabilities:
         class_start = self._num_boxes * 5
-        boxes = inputs[..., :class_start]
+        boxes_xywhc = inputs[..., :class_start]
         classes = inputs[..., class_start:]
 
         # Get components from boxes:
-        boxes = tf.reshape(boxes, [-1, self._size, self._size, self._num_boxes, 5])
+        boxes_xywhc = tf.reshape(boxes_xywhc, [-1, self._size, self._size, self._num_boxes, 5])
+        confidence = boxes_xywhc[..., 4]
+        boxes_xywh = boxes_xywhc[..., :4]
         
-        confidence = boxes[..., 4]
-        confidence = tf.reshape(confidence, [-1, self._num_boxes * self._size * self._size])
-        confidence = tf.repeat(confidence, repeats=self._num_boxes, axis=1)
-        
-        # Reparameterize:
-        # The width and height are normalized by the image dimensions
-        # The x, y coordinates are parameterized to be an offset from the grid cells
-
-        boxes_xywh = boxes[..., 0:4] / [self._size, self._size, self._img_size, self._img_size]
+        # Process boxes for nms
         boxes_xywh = self.parse_boxes(boxes_xywh)
-
         boxes_yxyx = _xcycwh_to_yxyx(boxes_xywh)
+        boxes_yxyx = tf.reshape(boxes_yxyx, [-1, self._max_boxes, 4])
         boxes_yxyx = tf.expand_dims(boxes_yxyx, axis=2)
 
-        classes = ks.activations.softmax(classes, axis=-1)
+        # Process box scores for nms
+        classes = tf.math.sigmoid(classes)
+        confidence = tf.math.sigmoid(confidence)
 
-        # Repeat since all the boxes in each cell are predicting the same class
-        classes = tf.reshape(classes, [-1, self._size * self._size, self._num_classes])
-        classes = tf.repeat(classes, repeats=self._num_boxes, axis=1)
+        classes = tf.stack([classes] * self._num_boxes, axis=-2)
+        confidence = tf.expand_dims(confidence, axis=-1)
+
+        classes = classes * confidence
+        classes = tf.reshape(classes, [-1, self._max_boxes, self._num_classes])
         
-        return boxes_yxyx, classes, confidence
+        return boxes_yxyx, classes
 
 
     def call(self, inputs):
@@ -111,8 +110,9 @@ class YoloV1Layer(ks.Model):
             confidence: predicted confidence of an object existing in the grid cell
             raw_output: size x size x (numBoxes * 5 + numClasses) tensor
         """
-        boxes, classes, confidence = self.parse_prediction(inputs)
-
+        boxes, classes = self.parse_prediction(inputs)
+        tf.print(boxes)
+        tf.print(classes)
         if self._use_nms:
             boxes = tf.cast(boxes, tf.float32)
             classes = tf.cast(classes, tf.float32)
@@ -132,7 +132,7 @@ class YoloV1Layer(ks.Model):
             return {
                 "bbox": boxes,
                 "classes": tf.math.argmax(classes, axis=-1),
-                "confidence": confidence,
+                "confidence": classes,
                 "raw_output": inputs
             }
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     img_dims = 448
 
     input_size = size * size * (num_boxes * 5 + num_classes)
-    random_input = tf.random.uniform(shape=(2, size, size, num_boxes * 5 + num_classes), maxval=img_dims/2, dtype=tf.float32)
+    random_input = tf.random.uniform(shape=(2, size, size, num_boxes * 5 + num_classes), maxval=1, dtype=tf.float32)
 
     print("Testing yolo layer:")
     yolo_layer = YoloV1Layer(num_boxes=num_boxes,
@@ -158,6 +158,6 @@ if __name__ == "__main__":
                              use_nms=True)
     
     output = yolo_layer(random_input)
-    # print(output['classes'])
-    # print(output['confidence'])
-    # print(output['raw_output'])
+    print(output['classes'])
+    print(output['confidence'])
+    print(output['bbox'])
