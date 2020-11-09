@@ -464,7 +464,7 @@ if __name__ == "__main__":
     prep_gpu()
     model = "regular" #load the model here
     labels = get_voc_names()
-    #labels = None
+    labels = None
 
     cap = FastVideo(0,
                     model= model, 
@@ -477,7 +477,7 @@ if __name__ == "__main__":
                     disp_h= 720, 
                     scale_que= 1, 
                     wait_time = None,
-                    #classes=20, # for yolo v1
-                    #labels=labels, # for yolo v1
+                    classes=20, # for yolo v1
+                    labels=labels, # for yolo v1
                     policy="mixed_float16")
     cap.run()

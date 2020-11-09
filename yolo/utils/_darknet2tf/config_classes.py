@@ -265,6 +265,7 @@ class localCfg(Config):
         self.weights = weights.reshape(weights.shape[0], 
                                        weights.shape[1] * weights.shape[2] * weights.shape[3], 
                                        weights.shape[4])
+        # self.weights = weights.reshape(self.w * self.h, self.c * self.size * self.size, self.filters)
         self.biases =  biases.reshape(w, h, self.filters)
 
         bytes_read += self.nweights
@@ -549,7 +550,7 @@ class connectedCFG(Config):
         self.biases = read_n_floats(self.output, files)
         bytes_read = self.output
         weights = read_n_floats(self.nweights, files)
-        self.weights = weights.reshape(self.c * self.w * self.h, self.output)
+        self.weights = weights.reshape((self.c * self.w * self.h, self.output))
         bytes_read += self.nweights
         return bytes_read * 4
 

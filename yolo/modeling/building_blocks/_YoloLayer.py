@@ -91,6 +91,7 @@ class YoloLayer(ks.Model):
             nms = tf.image.combined_non_max_suppression(
                 tf.expand_dims(boxes, axis=2), classifs, self._max_boxes,
                 self._max_boxes, self._thresh, self._cls_thresh)
+            
             return {
                 "bbox": nms.nmsed_boxes,
                 "classes": nms.nmsed_classes,

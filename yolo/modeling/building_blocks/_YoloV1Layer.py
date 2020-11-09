@@ -51,7 +51,10 @@ class YoloV1Layer(ks.Model):
         grid_points = _build_grid_points(self._size, self._size, self._num_boxes, dtype=tf.float32)
 
         boxes_xy = boxes[...,0:2]
+        boxes_xy = tf.math.sigmoid(boxes_xy)
+
         boxes_wh = boxes[...,2:4]
+        boxes_wh = tf.math.pow(boxes_wh, 2) # from src code
 
         boxes_xy =tf.stack([boxes_xy[..., 0]/self._size, boxes_xy[..., 1]/self._size], axis=-1) + grid_points
         boxes = tf.concat([boxes_xy, boxes_wh], axis=-1)
@@ -64,7 +67,7 @@ class YoloV1Layer(ks.Model):
             inputs: tensor of shape [batches, size, size, boxes * 5 + classes]
 
         Return:
-            boxes coordinates, classes predictions, and confidence for
+            boxes coordinates, classes predictions, for
             each bounding box prediction 
         """
 
@@ -93,7 +96,7 @@ class YoloV1Layer(ks.Model):
 
         classes = classes * confidence
         classes = tf.reshape(classes, [-1, self._max_boxes, self._num_classes])
-        
+
         return boxes_yxyx, classes
 
 
@@ -111,8 +114,6 @@ class YoloV1Layer(ks.Model):
             raw_output: size x size x (numBoxes * 5 + numClasses) tensor
         """
         boxes, classes = self.parse_prediction(inputs)
-        tf.print(boxes)
-        tf.print(classes)
         if self._use_nms:
             boxes = tf.cast(boxes, tf.float32)
             classes = tf.cast(classes, tf.float32)
