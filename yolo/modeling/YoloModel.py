@@ -219,5 +219,9 @@ if __name__ == "__main__":
 
     model = Yolo(model_version="v1", model_type="regular")
     model.build([(1, 448, 448, 3)])
-    model.load_weights_from_dn(config_file='../../yolov1.cfg', weights_file='../../yolov1.weights')
-    model.summary()
+    x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
+    y = model(x)
+    # model.load_weights_from_dn(config_file='../../yolov1.cfg', weights_file='../../yolov1.weights')
+    # model.summary()
+    tf.keras.utils.plot_model(model.backbone, to_file='v1_bacbone.png', show_shapes=True, expand_nested=True)
+    tf.keras.utils.plot_model(model.head, to_file='v1_head.png', show_shapes=True, expand_nested=True)

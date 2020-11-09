@@ -49,7 +49,7 @@ class BlockConfig(object):
   '''
     def __init__(self, layer, stack, reps, bottleneck, filters, pool_size,
                  kernel_size, strides, padding, activation, route, output_name,
-                 is_output):
+                 is_output, use_bn=True):
         self.layer = layer
         self.stack = stack
         self.repetitions = reps
@@ -63,6 +63,7 @@ class BlockConfig(object):
         self.route = route
         self.output_name = output_name
         self.is_output = is_output
+        self.use_bn = use_bn
 
 
 def build_block_specs(config):
@@ -91,7 +92,8 @@ class layer_factory(object):
             "filters": config.filters,
             "kernel_size": config.kernel_size,
             "strides": config.strides,
-            "padding": config.padding
+            "padding": config.padding,
+            "use_bn": config.use_bn,
         }
         dictvals.update(kwargs)
         return dictvals
@@ -110,7 +112,10 @@ class layer_factory(object):
         }
 
     def darkrouteprocess_config_todict(self, config, kwargs):
-        dictvals = {"filters": config.filters}
+        dictvals = {
+            "filters": config.filters,
+            "use_bn": config.use_bn,
+        }
         dictvals.update(kwargs)
         return dictvals
 
@@ -124,7 +129,7 @@ class layer_factory(object):
 LISTNAMES = [
     "default_layer_name", "level_type", "number_of_layers_in_level",
     "bottleneck", "filters", "pool_size", "kernal_size", "strides", "padding",
-    "default_activation", "route", "level/name", "is_output"
+    "default_activation", "route", "level/name", "is_output", "use_bn",
 ]
 
 CSPDARKNET53 = {
@@ -282,21 +287,21 @@ YOLOV1BACKBONE = {
         "backbone_split": 20
     },
     "backbone": [
-        ["DarkConv", None, 1, False, 64, None, 7, 2, "same", "leaky", -1, 0, False],
+        ["DarkConv", None, 1, False, 64, None, 7, 2, "same", "leaky", -1, 0, False, False],
         ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 1, False],
 
-        ["DarkConv", None, 1, False, 192, None, 3, 1, "same", "leaky", -1, 2, False],
+        ["DarkConv", None, 1, False, 192, None, 3, 1, "same", "leaky", -1, 2, False, False],
         ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 3, False],
 
-        ["DarkRouteProcess", "darkroute_process", 1, False, 256, None, None, None, None, None, -1, 4, False],
-        ["DarkRouteProcess", "darkroute_process", 1, False, 512, None, None, None, None, None, -1, 5, False],
+        ["DarkRouteProcess", "darkroute_process", 1, False, 256, None, None, None, None, None, -1, 4, False, False],
+        ["DarkRouteProcess", "darkroute_process", 1, False, 512, None, None, None, None, None, -1, 5, False, False],
         ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 6, False],
 
-        ["DarkRouteProcess", "darkroute_process", 4, False, 512, None, None, None, None, None, -1, 7, False],
-        ["DarkRouteProcess", "darkroute_process", 1, False, 1024, None, None, None, None, None, -1, 8, False],
+        ["DarkRouteProcess", "darkroute_process", 4, False, 512, None, None, None, None, None, -1, 7, False, False],
+        ["DarkRouteProcess", "darkroute_process", 1, False, 1024, None, None, None, None, None, -1, 8, False, False],
         ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 9, False],
 
-        ["DarkRouteProcess", "darkroute_process", 2, False, 1024, None, None, None, None, None, -1, 9, True],
+        ["DarkRouteProcess", "darkroute_process", 2, False, 1024, None, None, None, None, None, -1, 9, True, False],
     ]
 }
 
