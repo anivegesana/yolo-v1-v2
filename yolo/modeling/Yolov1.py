@@ -19,7 +19,7 @@ class Yolov1(base_model.Yolo):
             classes=20,
             backbone=None,
             head=None,
-            boxes=2,
+            boxes=3,
             weight_decay = 5e-4,
             policy="float32",
             using_rt=False,
@@ -128,7 +128,10 @@ class Yolov1(base_model.Yolo):
         pass
 
 if __name__ == "__main__":
-    y = Yolov1(model = "yolov1")
+    model = Yolov1(model = "yolov1", input_shape=(None, 448, 448, 3))
+    model.build(input_shape=(1, 448, 448, 3))
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
-    output = y(x)
-    y.summary()
+    y = model(x)
+    model._backbone.summary()
+    model._head.summary()
+    #ks.utils.plot_model(model._backbone, to_file='v1_backbone.png', show_shapes=True)

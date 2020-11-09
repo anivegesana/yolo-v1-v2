@@ -17,7 +17,7 @@ class Yolov1Head(tf.keras.Model):
                  S=7,
                  boxes=3,
                  config=None,
-                 input_shape=(None, None, None, 512),
+                 input_shape=(None, None, None, 1024),
                  **kwargs):
         """
         Args:
@@ -79,19 +79,25 @@ class Yolov1Head(tf.keras.Model):
                     act = ks.layers.LeakyReLU(alpha=0.1)
                 else:
                     act = layer.activation
-                x = ks.layers.ZeroPadding2D(padding=layer.padding)(x)
+
+                if layer.padding == "same" and layer.kernel_size != 1:
+                    padding = layer.kernel_size // 2
+                    x = ks.layers.ZeroPadding2D(
+                        ((padding, padding), (padding, padding))  # symetric padding
+                    )(x)
                 x = ks.layers.LocallyConnected2D(filters=layer.filters,
                                                  kernel_size=layer.kernel_size,
                                                  strides=layer.strides,
-                                                 padding='valid',
+                                                 padding="valid",
                                                  activation=act)(x)
             elif layer.name == "Dropout":
                 x = ks.layers.Dropout(rate=layer.filters)(x)
+            elif layer.name == "Flatten":
+                x = ks.layers.Flatten()(x)
             elif layer.name == "Connected":
                 x = ks.layers.Dense(units=layer.filters,
                                     activation=layer.activation)(x)
-        #print(self._S, self._S, self._output_depth)
-        return x#ks.layers.Reshape((self._S, self._S, self._output_depth))(x)
+        return x
 
 class HeadBlockConfig(object):
     def __init__(self, layer, filters, kernel_size,
@@ -123,9 +129,3 @@ def head_build_block_specs(config):
         for layer in config:
             specs.append(HeadBlockConfig(*layer))
         return specs
-
-if __name__ == "__main__":
-    y = Yolov1Head()
-    x = tf.ones(shape=[1, 14, 14, 512], dtype=tf.float32)
-    output = y(x)
-    y.summary()
