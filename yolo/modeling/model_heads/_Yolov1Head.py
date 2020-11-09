@@ -17,7 +17,7 @@ class Yolov1Head(tf.keras.Model):
                  S=7,
                  boxes=3,
                  config=None,
-                 input_shape=(None, None, None, 512),
+                 input_shape=(None, None, None, 1024),
                  **kwargs):
         """
         Args:

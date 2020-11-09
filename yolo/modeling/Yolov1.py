@@ -128,6 +128,10 @@ class Yolov1(base_model.Yolo):
         pass
 
 if __name__ == "__main__":
-    y = Yolov1(model = "yolov1", input_shape=(None, 448, 448, 3))
-    y.build(input_shape=(1, 448, 448, 3))
-    y.summary()
+    model = Yolov1(model = "yolov1", input_shape=(None, 448, 448, 3))
+    model.build(input_shape=(1, 448, 448, 3))
+    x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
+    y = model(x)
+    model._backbone.summary()
+    model._head.summary()
+    #ks.utils.plot_model(model._backbone, to_file='v1_backbone.png', show_shapes=True)
