@@ -6,10 +6,12 @@ import yolo.modeling.base_model as base_model
 from yolo.modeling.backbones.backbone_builder import Backbone_Builder
 from yolo.modeling.model_heads._Yolov1Head import Yolov1Head
 from yolo.modeling.building_blocks import YoloLayer
+import yolo.modeling.functions.yolo_v1_loss as loss_v1
 
 from yolo.utils.file_manager import download
 from yolo.utils import DarkNetConverter
 from yolo.utils._darknet2tf.load_weights import split_converter, load_weights_dnBackbone, load_weights_dnHead
+
 
 class Yolov1(base_model.Yolo):
     def __init__(
@@ -23,6 +25,7 @@ class Yolov1(base_model.Yolo):
             weight_decay = 5e-4,
             policy="float32",
             using_rt=False,
+            grid_size=7,
             **kwargs):
         super().__init__(**kwargs)
 
@@ -33,6 +36,7 @@ class Yolov1(base_model.Yolo):
         self._boxes = boxes
         self._built = False
         self._custom_aspects = False
+        self._grid_size = grid_size
 
         #setting the running policy
         if type(policy) != str:
@@ -126,6 +130,18 @@ class Yolov1(base_model.Yolo):
                              config_file=None,
                              weights_file=None):
         pass
+
+    def generate_loss(self):
+        self._loss_fn = loss_v1.Yolo_Loss_v1(
+            num_boxes=self._boxes,
+            num_classes=self._classes,
+            size=self._grid_size
+            )
+        return self._loss_fn
+
+    def apply_loss_fn(self, y_true, y_pred):
+        return self._loss_fn(y_true, y_pred)
+
 
 if __name__ == "__main__":
     y = Yolov1(model = "yolov1")
