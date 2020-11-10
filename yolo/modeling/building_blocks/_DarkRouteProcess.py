@@ -15,8 +15,8 @@ class DarkRouteProcess(ks.layers.Layer):
             kernel_initializer='glorot_uniform',
             bias_initializer='zeros',
             bias_regularizer=None,
-            use_bn=True,
             use_sync_bn=False,
+            use_bn = True,
             kernel_regularizer=None,  # default find where is it is stated
             norm_momentum=0.99,
             norm_epsilon=0.001,
@@ -27,12 +27,9 @@ class DarkRouteProcess(ks.layers.Layer):
         """
         process darknet outputs and connect back bone to head more generalizably
         Abstracts repetition of DarkConv objects that is common in YOLO.
-
         It is used like the following:
-
         x = DarkConv(1024, (3, 3), (1, 1))(x)
         proc = DarkRouteProcess(filters = 1024, repetitions = 3, insert_spp = False)(x)
-
         Args:
             filters: the number of filters to be used in all subsequent layers
                      filters should be the depth of the tensor input into this layer, as no downsampling can be done within this layer object
@@ -47,18 +44,16 @@ class DarkRouteProcess(ks.layers.Layer):
             norm_epsilon: batch norm parameter see Tensorflow documentation
             activation: activation function to use in processing
             leaky_alpha: if leaky acitivation function, the alpha to use in processing the relu input
-
         Returns:
             callable tensorflow layer
-
         Raises:
             None
         """
 
         # darkconv params
         self._filters = filters // mod
-        self._use_bn = use_bn
         self._use_sync_bn = use_sync_bn
+        self._use_bn = use_bn
         self._kernel_initializer = kernel_initializer
         self._bias_initializer = bias_initializer
         self._bias_regularizer = bias_regularizer
@@ -186,7 +181,6 @@ class DarkRouteProcess(ks.layers.Layer):
             x = layer(x)
             i += 1
         return x_prev, x
-        #return x, x_prev
 
     def get_config(self):
         # used to store/share parameters to reconsturct the model
