@@ -414,8 +414,10 @@ class Darknet(ks.Model):
                 stack_outputs.append(x_pass)
             elif config.stack == "darkroute_process":
                 x = self._build_darkrouteprocess(stack_outputs[config.route],
-                                      config,
-                                      name=f"{config.layer}_{i}")
+                                                 config,
+                                                 name=f"{config.layer}_{i}")
+                stack_outputs.append(x)
+
             if (config.is_output and self._min_size == None):
                 endpoints[str(config.output_name)] = x
             elif self._min_size != None and config.output_name >= self._min_size and config.output_name <= self._max_size:

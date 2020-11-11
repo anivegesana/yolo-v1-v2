@@ -26,12 +26,14 @@ class Yolo(ks.Model):
                  model_version="v4",
                  model_type="regular",
                  use_nms=True,
+                 backbone_input_shape=(1, 448, 448, 3),
                  **kwargs):
         super().__init__(**kwargs)
 
         self._model_verison = model_version
         self._model_type = model_type
         self._use_nms = use_nms
+        self._backbone_input_shape = backbone_input_shape
 
         if boxes == "default":
             if model_type == "tiny":
@@ -63,7 +65,8 @@ class Yolo(ks.Model):
                 model_id = "darknet53"
         self._backbone = Darknet(model_id=model_id,
                                  max_level=max_level,
-                                 min_level=min_level)
+                                 min_level=min_level,
+                                 input_specs=tf.keras.layers.InputSpec(shape=self._backbone_input_shape))
 
         if model_type == "tiny":
             self._head = YoloDecoder(classes=80,
@@ -218,10 +221,9 @@ if __name__ == "__main__":
     """
 
     model = Yolo(model_version="v1", model_type="regular")
-    model.build([(1, 448, 448, 3)])
+    model.build(input_shape=(1, 448, 448, 3))
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
     y = model(x)
-    # model.load_weights_from_dn(config_file='../../yolov1.cfg', weights_file='../../yolov1.weights')
-    # model.summary()
+    model.summary()
     tf.keras.utils.plot_model(model.backbone, to_file='v1_bacbone.png', show_shapes=True, expand_nested=True)
     tf.keras.utils.plot_model(model.head, to_file='v1_head.png', show_shapes=True, expand_nested=True)
