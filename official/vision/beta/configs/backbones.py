@@ -20,7 +20,6 @@ from typing import Optional
 import dataclasses
 
 from official.modeling import hyperparams
-from yolo.configs.backbones import DarkNet
 
 
 @dataclasses.dataclass
@@ -66,4 +65,3 @@ class Backbone(hyperparams.OneOfConfig):
   revnet: RevNet = RevNet()
   efficientnet: EfficientNet = EfficientNet()
   spinenet: SpineNet = SpineNet()
-  darknet: DarkNet = DarkNet()

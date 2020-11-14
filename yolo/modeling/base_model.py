@@ -5,7 +5,6 @@ from abc import abstractmethod
 
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
-
 class Yolo(tf.keras.Model, ABC):
     @abstractmethod
     def get_default_attributes():

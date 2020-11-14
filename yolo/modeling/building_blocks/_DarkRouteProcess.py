@@ -56,11 +56,11 @@ class DarkRouteProcess(ks.layers.Layer):
         self._use_bn = use_bn
         self._kernel_initializer = kernel_initializer
         self._bias_initializer = bias_initializer
-        self._bias_regularizer = bias_regularizer
-        self._kernel_regularizer = kernel_regularizer
+        self._use_bn=use_bn
+        self._l2_regularization = l2_regularization
 
         # normal params
-        self._norm_moment = norm_momentum
+        self._norm_moment = norm_moment
         self._norm_epsilon = norm_epsilon
 
         # activation params
@@ -68,14 +68,9 @@ class DarkRouteProcess(ks.layers.Layer):
         self._leaky_alpha = leaky_alpha
 
         # layer configs
-        if repetitions % 2 == 1:
-            self._append_conv = True
-        else:
-            self._append_conv = False
-        self._repetitions = repetitions // 2
-        self._lim = repetitions
+        self._repetitions = repetitions
+        self._lim = repetitions * 2
         self._insert_spp = insert_spp
-        self._spp_keys = spp_keys if spp_keys != None else [5, 9, 13]
 
         self.layer_list = self._get_layer_list()
         # print(self.layer_list)
@@ -83,14 +78,9 @@ class DarkRouteProcess(ks.layers.Layer):
         return
 
     def _get_layer_list(self):
-        layer_config = []
-        if self._repetitions > 0:
-            layers = ['block'] * self._repetitions
-            if self._repetitions > 2 and self._insert_spp:
-                layers[1] = 'spp'
-            layer_config.extend(layers)
-        if self._append_conv:
-            layer_config.append('mono_conv')
+        layer_config = ['block'] * self._repetitions
+        if self._repetitions > 2 and self._insert_spp:
+            layer_config[1] = 'spp'
         return layer_config
 
     def _mono_conv(self, filters):
@@ -117,9 +107,8 @@ class DarkRouteProcess(ks.layers.Layer):
                       use_sync_bn=self._use_sync_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,
-                      bias_regularizer=self._bias_regularizer,
-                      kernel_regularizer=self._kernel_regularizer,
-                      norm_momentum=self._norm_moment,
+                      l2_regularization=self._l2_regularization,
+                      norm_moment=self._norm_moment,
                       norm_epsilon=self._norm_epsilon,
                       activation=self._activation,
                       leaky_alpha=self._leaky_alpha)
@@ -131,9 +120,8 @@ class DarkRouteProcess(ks.layers.Layer):
                       use_sync_bn=self._use_sync_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,
-                      bias_regularizer=self._bias_regularizer,
-                      kernel_regularizer=self._kernel_regularizer,
-                      norm_momentum=self._norm_moment,
+                      l2_regularization=self._l2_regularization,
+                      norm_moment=self._norm_moment,
                       norm_epsilon=self._norm_epsilon,
                       activation=self._activation,
                       leaky_alpha=self._leaky_alpha)
@@ -148,25 +136,22 @@ class DarkRouteProcess(ks.layers.Layer):
                       use_sync_bn=self._use_sync_bn,
                       kernel_initializer=self._kernel_initializer,
                       bias_initializer=self._bias_initializer,
-                      bias_regularizer=self._bias_regularizer,
-                      kernel_regularizer=self._kernel_regularizer,
-                      norm_momentum=self._norm_moment,
+                      l2_regularization=self._l2_regularization,
+                      norm_moment=self._norm_moment,
                       norm_epsilon=self._norm_epsilon,
                       activation=self._activation,
                       leaky_alpha=self._leaky_alpha)
         # repalce with spp
-        x2 = DarkSpp(self._spp_keys)
+        x2 = DarkSpp([5, 9, 13])
         return [x1, x2]
 
     def build(self, input_shape):
         self.layers = []
         for layer in self.layer_list:
             if layer == 'block':
-                self.layers.extend(self._block(self._filters))
-            elif layer == 'spp':
+                self.layers.extend(self._block(self._filters, self._use_bn))
+            else:
                 self.layers.extend(self._spp(self._filters))
-            elif layer == 'mono_conv':
-                self.layers.append(self._mono_conv(self._filters))
         super().build(input_shape)
         return
 
@@ -188,8 +173,7 @@ class DarkRouteProcess(ks.layers.Layer):
             "filters": self._filters,
             "kernel_initializer": self._kernel_initializer,
             "bias_initializer": self._bias_initializer,
-            "bias_regularizer": self._bias_regularizer,
-            "kernel_regularizer": self._kernel_regularizer,
+            "l2_regularization": self._l2_regularization,
             "repetitions": self._repetitions,
             "insert_spp": self._insert_spp,
             "norm_moment": self._norm_moment,
