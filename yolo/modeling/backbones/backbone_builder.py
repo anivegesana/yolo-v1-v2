@@ -89,6 +89,7 @@ class Backbone_Builder(ks.Model):
             elif config.name == "DarkRouteProcess":
                 _, x = nn_blocks.DarkRouteProcess(filters=config.filters,
                                                use_bn=config.use_bn,
+                                               repetitions=1,
                                                name=f"{name}_{i}")(x)
             else:
                 layer = self._layer_dict[config.name]

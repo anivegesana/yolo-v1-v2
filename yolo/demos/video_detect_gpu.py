@@ -463,21 +463,37 @@ class FastVideo(object):
 if __name__ == "__main__":
     prep_gpu()
     model = "regular" #load the model here
-    labels = get_voc_names()
-    labels = None
 
-    cap = FastVideo(0,
-                    model= model, 
-                    model_version="v1",
-                    process_width=448,
-                    process_height=448,
-                    preprocess_with_gpu=False, 
-                    print_conf=True, 
-                    max_batch = 1, 
-                    disp_h= 720, 
-                    scale_que= 1, 
-                    wait_time = None,
-                    classes=20, # for yolo v1
-                    labels=labels, # for yolo v1
-                    policy="mixed_float16")
-    cap.run()
+    testv1 = True
+
+    if testv1:
+        labels = get_voc_names()
+        cap = FastVideo(0,
+                        model= model, 
+                        model_version="v1",
+                        process_width=448,
+                        process_height=448,
+                        preprocess_with_gpu=False, 
+                        print_conf=True, 
+                        max_batch = 1, 
+                        disp_h= 720, 
+                        scale_que= 1, 
+                        wait_time = None,
+                        classes=20, # for yolo v1
+                        labels=labels, # for yolo v1
+                        policy="mixed_float16")
+        cap.run()
+    else:
+        cap = FastVideo(0,
+                        model= model, 
+                        model_version="v3",
+                        process_width=448,
+                        process_height=448,
+                        preprocess_with_gpu=False, 
+                        print_conf=True, 
+                        max_batch = 1, 
+                        disp_h= 720, 
+                        scale_que= 1, 
+                        wait_time = None,
+                        policy="mixed_float16")
+        cap.run()

@@ -125,7 +125,26 @@ class Yolov1(base_model.Yolo):
                              dn2tf_head=True,
                              config_file=None,
                              weights_file=None):
-        pass
+         if not self._built:
+            self.build(self._input_shape)
+
+        if dn2tf_backbone or dn2tf_head:
+            if config_file is None:
+                config_file = download(self._model_name + '.cfg')
+            if weights_file is None:
+                weights_file = download(self._model_name + '.weights')
+            list_encdec = DarkNetConverter.read(config_file, weights_file)
+            encoder, decoder = split_converter(
+                list_encdec, self._encoder_decoder_split_location)
+
+        if dn2tf_backbone:
+            load_weights_dnBackbone(self._backbone,
+                                    encoder,
+                                    mtype="darknet20") # self._backbone_name
+
+        if dn2tf_head:
+            load_weights_dnHead(self._head, decoder)
+        return
 
 if __name__ == "__main__":
     model = Yolov1(model = "yolov1", input_shape=(None, 448, 448, 3))

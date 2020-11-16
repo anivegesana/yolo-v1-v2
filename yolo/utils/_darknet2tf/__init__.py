@@ -124,8 +124,8 @@ class DarkNetConverter(_DarkNetSectionList):
             model = tf.keras.Model(inputs=tensors.net,
                                 outputs=self._process_yolo_v1_layer(
                                        yolo_v1_cfg,
-                                       thresh=thresh,
-                                       class_thresh=class_thresh,
+                                       thresh=0,# 0 for testing
+                                       class_thresh=0,
                                        ))
         else:
             model = tf.keras.Model(inputs=tensors.net,

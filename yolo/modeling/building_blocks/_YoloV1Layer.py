@@ -51,7 +51,7 @@ class YoloV1Layer(ks.Model):
         grid_points = _build_grid_points(self._size, self._size, self._num_boxes, dtype=tf.float32)
 
         boxes_xy = boxes[...,0:2]
-        boxes_xy = tf.math.sigmoid(boxes_xy)
+        #boxes_xy = tf.math.sigmoid(boxes_xy)
 
         boxes_wh = boxes[...,2:4]
         boxes_wh = tf.math.pow(boxes_wh, 2) # from src code
@@ -88,13 +88,14 @@ class YoloV1Layer(ks.Model):
         boxes_yxyx = tf.expand_dims(boxes_yxyx, axis=2)
 
         # Process box scores for nms
-        classes = tf.math.sigmoid(classes)
+        #classes = tf.math.sigmoid(classes)
+        classes = ks.activations.softmax(classes, axis=-1)
         confidence = tf.math.sigmoid(confidence)
 
         classes = tf.stack([classes] * self._num_boxes, axis=-2)
         confidence = tf.expand_dims(confidence, axis=-1)
-
         classes = classes * confidence
+
         classes = tf.reshape(classes, [-1, self._max_boxes, self._num_classes])
 
         return boxes_yxyx, classes
@@ -114,6 +115,7 @@ class YoloV1Layer(ks.Model):
             raw_output: size x size x (numBoxes * 5 + numClasses) tensor
         """
         boxes, classes = self.parse_prediction(inputs)
+
         if self._use_nms:
             boxes = tf.cast(boxes, tf.float32)
             classes = tf.cast(classes, tf.float32)

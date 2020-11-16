@@ -4,6 +4,7 @@ format into TensorFlow layers
 """
 import itertools
 from tensorflow import keras as ks
+import tensorflow as tf
 
 
 def split_converter(lst, i, j=None):
@@ -24,6 +25,7 @@ def interleve_weights(block):
     top, bottom = tuple(zip(*weights_temp))
     weights = list(itertools.chain.from_iterable(top)) + \
         list(itertools.chain.from_iterable(bottom))
+    
     return weights
 
 
@@ -53,7 +55,44 @@ def get_darknet53_tf_format(net, only_weights=True):
     print("converted/interleved weights for tensorflow format")
     return new_net, weights
 
+def get_darknet20_tf_format(net, only_weights=True):
+    """convert weights from darknet sequntial to tensorflow weave, Darknet20 (YOLO v1) Backbone"""
+    
+    # First 5 layers are made up of net, darkConv, and maxpool layers
+    combo_blocks = []
+    for _ in range(5):
+        layer = net.pop(0)
+        combo_blocks.append(layer)
 
+    num_per_block = 2 # number of conv layers per darkRouteProcess block
+    encoder = []
+    blocks = []
+    while len(net) != 0:
+        layer = net.pop(0)
+        
+        if layer._type == "maxpool":
+            encoder.append(layer)
+
+        else:
+            blocks.append(layer)
+        
+            if len(blocks) == num_per_block:
+                encoder.append(blocks)
+                blocks = []
+
+    new_net = combo_blocks + encoder
+    for b in new_net:
+        print(b)
+    weights = []
+    if only_weights:
+        for block in new_net:
+            if type(block) != list:
+                weights.append(block.get_weights())
+            else:
+                weights.append(interleve_weights(block))
+    print("converted/interleved weights for tensorflow format")
+    return new_net, weights
+    
 def get_tiny_tf_format(encoder):
     weights = []
     for layer in encoder:
@@ -68,6 +107,8 @@ def load_weights_dnBackbone(backbone, encoder, mtype="darknet53"):
         encoder, weights_encoder = get_darknet53_tf_format(encoder[:])
     elif mtype == "darknet_tiny":
         encoder, weights_encoder = get_tiny_tf_format(encoder[:])
+    elif mtype == 'darknet20':
+        encoder, weights_encoder = get_darknet20_tf_format(encoder[:])
 
     # set backbone weights
     print(
