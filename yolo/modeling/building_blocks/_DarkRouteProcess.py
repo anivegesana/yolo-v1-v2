@@ -15,10 +15,11 @@ class DarkRouteProcess(ks.layers.Layer):
             kernel_initializer='glorot_uniform',
             bias_initializer='zeros',
             bias_regularizer=None,
+            l2_regularization=5e-4,  # default find where is it is stated
             use_sync_bn=False,
             use_bn = True,
             kernel_regularizer=None,  # default find where is it is stated
-            norm_momentum=0.99,
+            norm_moment=0.99,
             norm_epsilon=0.001,
             activation='leaky',
             leaky_alpha=0.1,
@@ -149,7 +150,7 @@ class DarkRouteProcess(ks.layers.Layer):
         self.layers = []
         for layer in self.layer_list:
             if layer == 'block':
-                self.layers.extend(self._block(self._filters, self._use_bn))
+                self.layers.extend(self._block(self._filters))
             else:
                 self.layers.extend(self._spp(self._filters))
         super().build(input_shape)
