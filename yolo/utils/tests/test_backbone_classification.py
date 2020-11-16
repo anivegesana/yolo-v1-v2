@@ -7,9 +7,14 @@ from yolo.modeling.backbones.backbone_builder import Backbone_Builder
 from yolo.utils._darknet2tf import DarkNetConverter
 from yolo.utils._darknet2tf.load_weights import load_weights_dnBackbone, split_converter
 
+'''
+This script trains a simple classification head on the yolo v1 backbone
+configured with pretrained weights. It uses the food101 dataset to train
+
+'''
 ''' Dataset loading '''
 def getDataset():
-    # get img classification dataset and preprocess
+    # get classification dataset and preprocess
     DATASET_DIRECTORY = "D:\Datasets" # modify to select download location
     (train, test), info = tfds.load('food101', 
                       split=['train', 'validation'], 
@@ -58,20 +63,15 @@ def loadBackboneWeights(backbone):
     list_encdec = converter.read(config_file=config_path, weights_file=weights_path)
     encoder, _ = split_converter(list_encdec, 25)
 
-
-    load_weights_dnBackbone(backbone, encoder, mtype='darknet20')
+    load_weights_dnBackbone(backbone, encoder, mtype='darknet20') # by default sets trainable to False
     return
 
-def getWeights(backbone, encoder):
-    # two darkconvs per route process
-    for layer in encoder:
-        tf.print(type(layer))
-    return 0
-
 if __name__ == '__main__':
-    (train, test) = getDataset()
+    # Retrieve training and validation data, performs preprocessing
+    (train, test) = getDataset() 
     show = False
 
+    # Display dataset samples
     if show:
         fig, ax = plt.subplots(3, 3)
         for i, (image, label) in enumerate(test):
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         fig.tight_layout()
         plt.show()
             
-
+    # Load the model (backbone + classification head)
     model = createModel()
     tf.print(model.summary())
 
@@ -92,4 +92,3 @@ if __name__ == '__main__':
                 metrics=['accuracy'])
     
     model.fit(train, validation_data=test, epochs=200)
-

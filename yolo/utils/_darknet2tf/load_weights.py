@@ -57,32 +57,31 @@ def get_darknet53_tf_format(net, only_weights=True):
 
 def get_darknet20_tf_format(net, only_weights=True):
     """convert weights from darknet sequntial to tensorflow weave, Darknet20 (YOLO v1) Backbone"""
-    
-    # First 5 layers are made up of net, darkConv, and maxpool layers
+    # First 5 layers: [net] x1, [darkConv] x2, [maxpool] x2
     combo_blocks = []
     for _ in range(5):
         layer = net.pop(0)
         combo_blocks.append(layer)
 
-    num_per_block = 2 # number of conv layers per darkRouteProcess block
+    num_per_block = 2
     encoder = []
     blocks = []
+    # Iterating through config class list and grouping them by blocks into the 
+    # encoder 
+    # DarkRouteProcess blocks have two num_per_block (2) conv layers
+    # Maxpool layers are added to the encoder standalone
     while len(net) != 0:
-        layer = net.pop(0)
-        
+        layer = net.pop(0) 
         if layer._type == "maxpool":
             encoder.append(layer)
-
         else:
             blocks.append(layer)
-        
             if len(blocks) == num_per_block:
                 encoder.append(blocks)
                 blocks = []
-
     new_net = combo_blocks + encoder
-    for b in new_net:
-        print(b)
+
+    # Generate weight format for tensorflow model
     weights = []
     if only_weights:
         for block in new_net:
