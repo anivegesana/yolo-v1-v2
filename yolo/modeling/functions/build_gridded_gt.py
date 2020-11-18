@@ -61,3 +61,72 @@ def build_gridded_gt_v1(y_true: dict, num_classes: int, size: int,
         update = update.stack()
         full = tf.tensor_scatter_nd_add(full, update_index, update)
     return full
+
+def build_gridded_gt_sort(y_true: dict, num_classes: int, size: int,
+                          num_boxes: int, dtype=tf.float64) -> tf.Tensor:
+    boxes = tf.cast(y_true["bbox"], dtype)  # [xcenter, ycenter, width, height]
+    classes = tf.one_hot(
+        tf.cast(y_true["classes"], dtype=tf.int32),
+        depth=num_classes, dtype=dtype
+        )
+    batches = boxes.get_shape().as_list()[0]
+    gt_boxes = boxes.get_shape().as_list()[1]
+    full = tf.zeros([batches, size, size, num_boxes,
+                     num_classes + 4 + 1], dtype=dtype)
+    # x centered coords
+    x = tf.cast(boxes[..., 0] * tf.cast(size, dtype=dtype), dtype=tf.int32)
+    # y centered coords
+    y = tf.cast(boxes[..., 1] * tf.cast(size, dtype=dtype), dtype=tf.int32)
+    i = 0  # index for tensor array
+    full_confidence = tf.cast(tf.convert_to_tensor([1.]), dtype=dtype)
+    inserted = tf.zeros([batches, size, size], dtype=tf.bool)
+    for batch in range(batches):
+        for box_id in range(gt_boxes):
+            if tf.math.reduce_all(
+                tf.math.equal(boxes[batch, box_id, 2:4], 0), axis=None
+            ):
+                continue
+            if tf.math.reduce_any(
+                tf.math.less(boxes[batch, box_id, 0:2], 0.0)
+            ):
+                continue
+            if tf.math.reduce_any(
+                tf.math.greater_equal(boxes[batch, box_id, 0:2], 1.0)
+            ):
+                continue
+            box_count = inserted[batch, x, y]
+            if box_count >= (num_boxes - 1):
+                continue
+            update_index = update_index.write(
+                i, [batch, y[batch, box_id], x[batch, box_id], n]
+            )
+            if box_count == 0:
+                # [TODO] concat zeros for previous boxes/future boxes
+                value = tf.concat(
+                    [boxes[batch, box_id],
+                     tf.zeros([(num_boxes - 1) * 4], dtype=dtype),
+                     full_confidence,
+                     classes[batch, box_id]],
+                    -1
+                )
+            else:
+                # num_boxes - box_count - 1 for boxes after this
+                # num_classes + 1 for confidence and classes
+                value = tf.concat(
+                    [tf.zeros([box_count * 4], dtype=dtype)
+                     boxes[batch, box_id],
+                     tf.zeros(
+                         [(num_boxes - box_count - 1) * 4 + num_classes + 1],
+                         dtype=dtype
+                     )],
+                    -1
+                )
+            update = update.write(i, value)
+            i += 1
+            inserted[batch, x, y] += 1  # increment box number
+    # if no updates, return empty grid
+    if tf.math.greater(update_index.size(), 0):
+        update_index = update_index.stack()
+        update = update.stack()
+        full = tf.tensor_scatter_nd_add(full, update_index, update)
+    return full
