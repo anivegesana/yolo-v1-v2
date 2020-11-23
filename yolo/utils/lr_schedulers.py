@@ -16,14 +16,16 @@ class CosineDecay(ks.callbacks.LearningRateScheduler):
         super().__init__(self._schedule, verbose=verbose)
 
     def _schedule(self, epoch, lr):
+        if epoch == 0:
+            lr = 0.0  # apparently starts as 0.01 and not 0.0
         if epoch < self._warmup_steps:
             lr += self._initial_learning_rate / self._warmup_steps
         elif lr >= self._offset:
             lr = 0.5 * self._initial_learning_rate * (
-                1 + np.cos(np.pi * (
-                    epoch - self._warmup_steps - self._hold_steps
-                ) / float(self._decay_steps - self._warmup_steps
-                          - self._hold_steps))
+                1 + np.cos(
+                    np.pi * (epoch - self._warmup_steps - self._hold_steps) /
+                    (self._decay_steps - self._warmup_steps - self._hold_steps)
+                )
             )
         else:
             lr = self._offset
@@ -45,7 +47,7 @@ class YOLOv1StepDecay(ks.callbacks.LearningRateScheduler):
 
     def _schedule(self, epoch, lr):
         if epoch < 15:
-            return 10e-3 + 10e-2 / 15 * epoch
+            return 10e-3 + (10e-2 - 10e-3) / 15 * epoch
         elif epoch < 90:
             return 10e-2
         elif epoch < 120:
@@ -58,7 +60,7 @@ if __name__ == "__main__":
     model = ks.Sequential(layers=[ks.layers.Dense(10)])
     x = np.ones(10)
     y = np.ones(10)
-    learning_rate = CosineDecay(0.1, 5, 5, 140, verbose=1)
+    learning_rate = CosineDecay(0.1, 5, 150, 0, verbose=1)
     model.compile(
         optimizer='sgd',
         loss='mse',
