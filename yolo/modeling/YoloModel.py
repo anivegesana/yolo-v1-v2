@@ -58,6 +58,10 @@ class Yolo(ks.Model):
             if model_type == "regular":
                 model_id = "yolov1backbone"
 
+        elif model_version == "v2":
+            if model_type == "regular":
+                model_id = "yolov2backbone"
+
         else:
             if model_type == "tiny":
                 model_id = "darknettiny"
@@ -78,6 +82,10 @@ class Yolo(ks.Model):
 
         elif model_version == "v1" and model_type == "regular":
             self._head = Yolov1Head()
+
+        elif model_version == "v2" and model_type == "regular":
+            # TODO: change this
+            self._head = None
 
         elif model_version == "v4":
             self._head = YoloDecoder(classes=80,
@@ -105,7 +113,7 @@ class Yolo(ks.Model):
     def build(self, input_shape):
         self._backbone.build(input_shape)
         nshape = self._backbone.output_shape
-        self._head.build(nshape)
+        #self._head.build(nshape)
         """
         masks, path_scales, x_y_scales = self._head.get_loss_attributes()
 
@@ -123,8 +131,9 @@ class Yolo(ks.Model):
         return
 
     def call(self, inputs, training=False):
-        maps = self._backbone(inputs)
-        raw_predictions = self._head(maps)
+        raw_predictions = self._backbone(inputs)
+        #maps = self._backbone(inputs)
+        #raw_predictions = self._head(maps)
 
         if training:
             return {"raw_output": raw_predictions}
@@ -220,10 +229,21 @@ if __name__ == "__main__":
     model.summary()
     """
 
-    model = Yolo(model_version="v1", model_type="regular")
+    """# YOLOv1
+    model = Yolo(model_version="v1", model_type="regular", backbone_input_shape=(1, 448, 448, 3))
     model.build(input_shape=(1, 448, 448, 3))
     x = tf.ones(shape=[1, 448, 448, 3], dtype=tf.float32)
     y = model(x)
     model.summary()
     tf.keras.utils.plot_model(model.backbone, to_file='v1_bacbone.png', show_shapes=True, expand_nested=True)
     tf.keras.utils.plot_model(model.head, to_file='v1_head.png', show_shapes=True, expand_nested=True)
+    """
+
+    # YOLOv2
+    model = Yolo(model_version="v2", model_type="regular", backbone_input_shape=(1, 416, 416, 3))
+    model.build(input_shape=(1, 416, 416, 3))
+    x = tf.ones(shape=[1, 416, 416, 3], dtype=tf.float32)
+    y = model.backbone(x)
+    print(y)
+    # model.summary()
+    tf.keras.utils.plot_model(model.backbone, to_file='v2_backbone.png', show_shapes=True, expand_nested=True)

@@ -273,14 +273,6 @@ DARKNETTINY = {
     ]
 }
 
-"""
-LISTNAMES = [
-    "default_layer_name", "level_type", "number_of_layers_in_level",
-    "bottleneck", "filters", "pool_size", "kernel_size", "strides", "padding",
-    "default_activation", "route", "level/name", "is_output"
-]
-"""
-
 YOLOV1BACKBONE = {
     "list_names": LISTNAMES,
     "splits": {
@@ -305,12 +297,42 @@ YOLOV1BACKBONE = {
     ]
 }
 
+YOLOV2BACKBONE = {
+    "list_names": LISTNAMES,
+    "splits": {
+        "backbone_split": 0
+    },
+    "backbone": [
+        ["DarkConv", None, 1, False, 32, None, 3, 1, "same", "leaky", -1, 0, False, True],  #224x224
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 1, False],         #112x112
+
+        ["DarkConv", None, 1, False, 64, None, 3, 1, "same", "leaky", -1, 2, False, True],  #112x112
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 3, False],         #56x56
+
+        ["DarkConv", None, 1, False, 128, None, 3, 1, "same", "leaky", -1, 4, False, True], #56x56
+        ["DarkRouteProcess", "darkroute_process", 1, False, 128, None, None, None, None, None, -1, 5, False, True], #56x56
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 6, False],         #28x28
+
+        ["DarkConv", None, 1, False, 256, None, 3, 1, "same", "leaky", -1, 7, False, True], #28x28
+        ["DarkRouteProcess", "darkroute_process", 1, False, 256, None, None, None, None, None, -1, 8, False, True], #28x28
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 9, False],         #14x14
+
+        ["DarkConv", None, 1, False, 512, None, 3, 1, "same", "leaky", -1, 10, False, True], #14x14
+        ["DarkRouteProcess", "darkroute_process", 2, False, 512, None, None, None, None, None, -1, 11, False, True], #14x14
+        ["MaxPool", None, 1, False, None, 2, None, 2, "valid", None, -1, 13, False],         #7x7
+
+        ["DarkConv", None, 1, False, 1024, None, 3, 1, "same", "leaky", -1, 14, False, True], #7x7
+        ["DarkRouteProcess", "darkroute_process", 2, False, 1024, None, None, None, None, None, -1, 15, True, True], #7x7
+    ]
+}
+
 BACKBONES = {
     "darknettiny": DARKNETTINY,
     "darknet53": DARKNET53,
     "cspdarknet53": CSPDARKNET53,
     "cspdarknettiny": CSPDARKNETTINY,
     "yolov1backbone": YOLOV1BACKBONE,
+    "yolov2backbone": YOLOV2BACKBONE,
 }
 
 
